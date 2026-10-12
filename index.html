@@ -123,6 +123,40 @@ code { font-family: var(--f-mono); font-size: 12px; }
 .tnav input { width: 64px; }
 .presets { display: flex; flex-direction: column; gap: 5px; }
 .presets button { text-align: left; }
+textarea { font-family: var(--f-mono); font-size: 12.5px; color: var(--ink); background: var(--bg); border: 1px solid var(--rule); border-radius: 3px; padding: 4px 6px; width: 100%; resize: vertical; line-height: 1.4; }
+textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+input:disabled, select:disabled { opacity: .45; }
+label:has(input:disabled), label:has(select:disabled) { color: var(--ink-3); }
+.syntax summary { font-size: 12.5px; }
+table.syn { font-family: var(--f-ui); font-size: 12px; margin-top: 6px; }
+table.syn td, table.syn th { text-align: left; vertical-align: top; padding: 2px 4px; color: var(--ink-2); font-variant-numeric: normal; }
+table.syn th { color: var(--ink); font-weight: 600; font-size: 11.5px; padding-top: 6px; }
+table.syn td:first-child { white-space: nowrap; }
+.py { font-family: var(--f-mono); font-size: 11px; color: var(--ink-3); }
+.pgrp { font-size: 11px; color: var(--ink-3); margin-top: 4px; }
+.ptsum table { font-size: 11.5px; }
+.ptsum th, .ptsum td { padding: 1px 5px; }
+.tag { font-family: var(--f-mono); font-size: 10.5px; padding: 0 4px; border-radius: 3px; border: 1px solid var(--rule); color: var(--ink-2); }
+.tag.w { border-color: var(--ink-2); color: var(--ink); }
+.tag.sw { border-color: var(--s-cost); color: var(--s-cost); }
+.tag.g { border-color: var(--accent); color: var(--accent); }
+/* graph view */
+.gcard { padding-bottom: 8px; }
+.gcard > summary { font-size: 13px; color: var(--ink); font-weight: 600; }
+.gscroll { overflow-x: auto; }
+svg.bn { display: block; width: 100%; min-width: 720px; height: auto; margin-top: 6px; }
+svg.bn text { font-family: var(--f-ui); font-size: 11px; fill: var(--ink-2); }
+svg.bn .nname { font-size: 12.5px; font-weight: 600; fill: var(--ink); }
+svg.bn .nval { font-family: var(--f-mono); font-size: 10.5px; fill: var(--ink-2); }
+svg.bn .elab { font-family: var(--f-mono); font-size: 10.5px; fill: var(--ink-3); }
+.gtab { font-family: var(--f-mono); font-size: 12px; color: var(--ink-2); display: flex; flex-direction: column; gap: 1px; margin-top: 2px; }
+.gtab .gt b { font-family: var(--f-ui); font-weight: 600; color: var(--ink); margin-right: 4px; }
+.gtab .gt.active, .gtab .gt.active b { color: var(--accent); }
+.gtab .gt.learn, .gtab .gt.learn b { color: var(--s-cost); }
+.gcap { font-size: 12.5px; color: var(--ink-2); margin: 4px 0 0; max-width: 90ch; }
+.glg { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 11.5px; color: var(--ink-3); margin-top: 4px; }
+.glg i { display: inline-block; width: 12px; height: 9px; border: 1px solid var(--ink-3); border-radius: 2px; vertical-align: middle; margin-right: 4px; }
+.glg i.ev { background: var(--hl); border-color: var(--accent); }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 </style>
 
@@ -130,27 +164,69 @@ code { font-family: var(--f-mono); font-size: 12px; }
 <header>
   <h1>Contextual goal inference · Stroop</h1>
   <p>Port of <code>contextual-goal-inference/model.py</code> (CIM), checked against the Python code.</p>
-  <span class="graph">c<sub>t−1</sub> → c<sub>t</sub> ← s<sub>ink</sub>;  c, s → a;  c, s, a → o</span>
+  <span class="graph">c<sub>t−1</sub> → c<sub>t</sub> ← s<sub>ink</sub>;  c, s → a;  c, s, a → o;  c → i</span>
 </header>
 
 <div class="layout">
 <aside>
   <fieldset>
     <legend>Trial sequence</legend>
-    <label for="seq" style="flex-direction:column;align-items:stretch;gap:4px"><span>Ink + word per trial: <code>RG</code> = word GREEN in red ink. <code>RG*20</code> repeats; <code>20@0.75</code> draws 20 random trials, 75 % congruent. <code>|</code> starts a new block.</span>
-      <input id="seq" type="text" value="RR*20 | GR*20 | RR*20 | GR*20" spellcheck="false" autocomplete="off">
+    <label for="seq" style="flex-direction:column;align-items:stretch;gap:4px"><span>Ink + word per trial: <code>RG</code> = word GREEN in red ink; <code>RG.w</code> = read the word. <code>|</code> starts a new block; <code>[…]</code> sets block options.</span>
+      <textarea id="seq" rows="3" spellcheck="false" autocomplete="off">RR*20 | GR*20 | RR*20 | GR*20</textarea>
     </label>
-    <p class="hint">Task is always colour naming (<code>task=0</code>); the goal is <code>o=0</code>, the correct outcome.</p>
     <div id="seqErr" class="err" hidden></div>
+    <details class="syntax">
+      <summary>Syntax</summary>
+      <table class="syn">
+        <tbody>
+          <tr><th colspan="2">Trials</th></tr>
+          <tr><td><code>RG</code></td><td>red ink, word GREEN; task from the block (default: name the ink)</td></tr>
+          <tr><td><code>RG.w</code> · <code>RG.i</code></td><td>this trial: read the word · name the ink</td></tr>
+          <tr><td><code>RG*20</code></td><td>repeat 20 times (also <code>RG.w*20</code>)</td></tr>
+          <tr><td><code>20</code></td><td>20 random trials, drawn from the block options</td></tr>
+          <tr><td><code>20@0.75</code></td><td>20 random trials, 75 % congruent</td></tr>
+          <tr><th colspan="2">Block options, e.g. <code>[task=word switch=0.75]</code></th></tr>
+          <tr><td><code>task=ink</code> · <code>word</code></td><td>task for the block; with switching, the first trial's task</td></tr>
+          <tr><td><code>switch=0.75</code></td><td>random tasks, 75 % switches <span class="py">sp</span></td></tr>
+          <tr><td><code>congruent=0.75</code></td><td>75 % congruent random trials <span class="py">cp</span></td></tr>
+          <tr><td><code>red_congruent=0.75</code></td><td>item-specific: red ink 75 % congruent, green ink 25 % <span class="py">itc</span></td></tr>
+          <tr><td><code>red_switch=0.25</code></td><td>item-specific: red ink 25 % switches, green ink 75 %; implies <code>switch=0.5</code> <span class="py">its</span></td></tr>
+          <tr><td><code>goal=word 0.95</code></td><td>the goal is the outcome the word response gets, w.p. .95, else the other outcome <span class="py">goal_pred_strength</span></td></tr>
+          <tr><td><code>goal=ink 0.7</code></td><td>same, for the ink response</td></tr>
+          <tr><td><code>goal=correct</code></td><td>default: the goal is o = correct</td></tr>
+        </tbody>
+      </table>
+      <p class="hint">Grey names are the Python parameters (<code>gen_stimuli.py</code>, <code>learn_contexts.py</code>). Random trials follow <code>gen_stims_one_block</code>; the item is the ink colour.</p>
+    </details>
   </fieldset>
 
   <fieldset>
     <legend>Presets</legend>
     <div class="presets">
+      <span class="pgrp">Paper runs on a pretrained model (<code>perform_tasks.py</code>)</span>
+      <button type="button" data-preset="lwpce">List-wide PCE · habit model, 75 % / 25 % congruent</button>
+      <button type="button" data-preset="ispce">Item-specific PCE · red ink 75 % congruent</button>
+      <button type="button" data-preset="lwpse">List-wide PSE · task-set model, 25 % / 75 % switches</button>
+      <button type="button" data-preset="ispse">Item-specific PSE · red ink 25 % switches</button>
+      <span class="pgrp">Acquisition, as a visible sequence (<code>learn_contexts.py</code> style)</span>
+      <button type="button" data-preset="acqh">Learn a context-specific word habit</button>
+      <button type="button" data-preset="acqts">Learn ink and word task sets</button>
+      <span class="pgrp">Other</span>
       <button type="button" data-preset="fig7">Figure 7: RR / GR blocks, habit learning only</button>
       <button type="button" data-preset="pce">Mostly congruent / mostly incongruent blocks, sampling</button>
       <button type="button" data-preset="single">Four single trials (stroop_config)</button>
     </div>
+  </fieldset>
+
+  <fieldset>
+    <legend>Pretraining</legend>
+    <label for="pretrain" style="flex-direction:column;align-items:stretch;gap:3px">Start from <select id="pretrain">
+      <option value="none">settings below (no pretraining)</option>
+      <option value="habit">habit model (h_models)</option>
+      <option value="taskset">task-set model (ts_models)</option>
+    </select></label>
+    <p class="hint" id="ptHint">Runs phase 1 of the paper silently (<code>learn_contexts.py</code>: 4 × 640 trials, exact inference), then applies the resets of <code>perform_tasks.py</code>: θ back to a sticky prior, c<sub>prev</sub> to the value below. Seed sets the pretraining run too.</p>
+    <div id="ptSummary" class="ptsum" hidden></div>
   </fieldset>
 
   <fieldset>
@@ -159,6 +235,9 @@ code { font-family: var(--f-mono); font-size: 12px; }
     <label for="threshold">Accepted samples to stop <input id="threshold" type="number" min="1" max="5000" step="10" value="100"></label>
     <label for="action">Response <select id="action"><option value="map">MAP action</option><option value="sample">Sample from p(a)</option></select></label>
     <label for="noise">Outcome noise <input id="noise" type="number" min="0" max="1" step="0.05" value="0"></label>
+    <label class="chk"><input id="cue" type="checkbox"> Instruction cue i (task is told)</label>
+    <label for="cue_r">Cue reliability <input id="cue_r" type="number" min="0.5" max="0.999" step="0.05" value="0.9"></label>
+    <p class="hint" id="cueHint">Goal inference also conditions on i = task (<code>instruction=True</code>). Context c<sub>k</sub> is assumed to go with task k (c0 ink, c1 word), so the cue needs 2 contexts.</p>
     <div class="row"><label for="seed" style="flex:1">Seed <input id="seed" type="number" min="1" step="1" value="7"></label><button id="reseed" type="button">New seed</button></div>
   </fieldset>
 
@@ -168,6 +247,7 @@ code { font-family: var(--f-mono); font-size: 12px; }
     <label class="chk"><input id="st_habit" type="checkbox" checked> Learn S–R association (α)</label>
     <label for="hdim">α update applies to <select id="hdim"><option value="">this ink + word</option><option value="1">this word, any ink</option><option value="0">this ink, any word</option></select></label>
     <label class="chk"><input id="st_taskset" type="checkbox" checked> Learn task set (β)</label>
+    <label for="order">Order <select id="order"><option value="ht">α then β (perform_tasks.py)</option><option value="th">β then α (learn_contexts.py)</option></select></label>
     <label class="chk"><input id="st_context" type="checkbox" checked> Learn context prediction (θ)</label>
     <label for="fr">θ forgetting rate <input id="fr" type="number" min="0" max="1" step="0.01" value="0.05"></label>
   </fieldset>
@@ -175,12 +255,14 @@ code { font-family: var(--f-mono); font-size: 12px; }
   <fieldset class="c1row">
     <legend>World-model structure</legend>
     <label class="chk"><input id="cmp" type="checkbox" checked> Compare with a 1-context model</label>
-    <label for="mixv">Sequence plots show <select id="mixv"><option value="mix">mixture over K (as Fig. 7)</option><option value="K2">2-context model</option><option value="K1">1-context model</option></select></label>
-    <p class="hint">As in <code>inference_illustration.py</code>: the twin uses c0's CPDs, and p(K) is updated each trial from the difference in surprise.</p>
+    <label for="mixv" style="flex-direction:column;align-items:stretch;gap:3px">Sequence plots show <select id="mixv"><option value="mix">mixture over K (as Fig. 7)</option><option value="K2">2-context model</option><option value="K1">1-context model</option></select></label>
+    <p class="hint">As in <code>inference_illustration.py</code>: the twin uses c0's CPDs (or, with pretraining, the 1-context model pretrained alongside), and p(K) is updated each trial from the difference in surprise.</p>
+    <p class="hint" id="cmpOff" hidden>Off while the instruction cue is on: a 1-context model has no cue node (the Python code would fail too).</p>
   </fieldset>
 
   <fieldset>
     <legend>Model (model_config.py)</legend>
+    <p class="hint" id="modelPt" hidden>With pretraining, α, β and the number of contexts come from the pretrained model. Stickiness, θ strength and the initial c<sub>prev</sub> set the θ reset (paper: 0.99, 0.5, 0.5).</p>
     <label for="nc">Contexts <select id="nc"><option value="2">2</option><option value="1">1</option></select></label>
     <div class="ctxgrid">
       <span></span><span class="h">c0</span><span class="h c1col">c1</span>
@@ -225,6 +307,13 @@ code { font-family: var(--f-mono); font-size: 12px; }
 
   <div class="card">
     <div class="stages" id="stages" role="group" aria-label="Steps of the trial"></div>
+    <details id="gwrap" class="gcard" open>
+      <summary>Graph view</summary>
+      <div class="gscroll"><div id="graph"></div></div>
+      <div class="gtab" id="gtab"></div>
+      <p class="gcap" id="gcap"></p>
+      <div class="glg"><span><i class="ev"></i>observed / clamped</span><span><i></i>inferred (bars = belief)</span><span style="color:var(--accent)">blue: edges used at this step</span><span style="color:var(--s-cost)">orange: tables updated by learning</span></div>
+    </details>
     <div class="plots" id="plots"></div>
     <p class="hint" style="margin-top:6px">Click a plot (or use ← →) to inspect that moment. Each sampling iteration is one proposal (c, a, o) drawn from the model; the number of iterations is the model's RT.</p>
   </div>
@@ -232,16 +321,6 @@ code { font-family: var(--f-mono); font-size: 12px; }
   <div class="card insp" id="insp"></div>
   </section>
 
-  <details class="card">
-    <summary>Notes on the code (behaviour reproduced as written)</summary>
-    <ul class="notes">
-      <li>The sampler starts its counts at 1 for every (a, c), so iteration 0 is uniform, not the prior. Its iteration-0 error is computed under the prior (<code>sampler.py</code>).</li>
-      <li>On the first trial, habit and task-set learning put all counts on context c0 (<code>first_trial</code> branches), which breaks the symmetry between contexts.</li>
-      <li>Outcome inference conditions on the chosen action, but its error term averages p(o|c,s,a) over the action belief <code>goal_posterior_a</code>.</li>
-      <li>After outcome inference the network is rebuilt with a uniform c<sub>prev</sub>, so the re-computed surprise in <code>learn_habit</code> (<code>overall_goal_surprise</code>) uses a uniform context-transition prior on those trials.</li>
-      <li>Learning costs use <code>torch.distributions.Dirichlet</code>, which treats the last array axis as the event axis (s1 for α, a for β, s0 for θ). The CPDs are normalised over the first axis (a, o, c). So the reported KL is taken over a different axis than the one the probabilities live on.</li>
-    </ul>
-  </details>
 </main>
 </div>
 </div>
@@ -397,33 +476,46 @@ code { font-family: var(--f-mono); font-size: 12px; }
       this.prev_task = null;
       this.rng = makeRng(opts.seed || 1);
       this.rec = null;
+      // instruction cue node i (model.py: p_i__c, laid out [i][c]); only used when goal inference
+      // is called with instruction = true. Cue reliability r: p(i = k | c = k) = r.
+      this.setCue(opts.cue_reliability);
     }
 
-    // exact p(a, c | s) and p(a, c | s, o=goal) given current CPDs and c_prev belief
-    _joint(stim, goal, cprev) {
+    setCue(r) {
+      this.cue_reliability = (r === undefined || r === null) ? null : r;
+      this.pI = this.cue_reliability === null ? null : [[r, 1 - r], [1 - r, r]];
+    }
+
+    // exact p(a, c | s) and p(a, c | s, o=goal[, i=cueTask]) given current CPDs and c_prev belief.
+    // AS IN CODE: the prior p(a, c | s) never includes the cue (goal_prior is queried without i).
+    _joint(stim, goal, cprev, cueTask) {
       const n = this.n_c, [s0, s1] = stim;
       const th = this.theta.map(), al = this.alpha.map(), be = this.beta.map();
       const priorC = [];
       for (let c = 0; c < n; c++) { let s = 0; for (let cp = 0; cp < n; cp++) s += cprev[cp] * th[c][cp][s0]; priorC.push(s); }
       const prior = [0, 1].map((a) => priorC.map((pc, c) => pc * al[a][c][s0][s1]));
       const lik = [0, 1].map((a) => priorC.map((_, c) => be[goal][c][s0][s1][a]));
-      const un = zipArr(prior, lik, (p, l) => p * l);
+      const cueLik = (cueTask === undefined || cueTask === null) ? null : priorC.map((_, c) => this.pI[cueTask][c]);
+      const un = zipArr(prior, lik, (p, l) => p * l).map((row) => cueLik ? row.map((v, c) => v * cueLik[c]) : row);
       const Z = flat(un).reduce((x, y) => x + y, 0);
       const post = mapArr(un, (v) => v / Z);
-      return { priorC, prior, lik, post, pOgoal: Z, al, be, th };
+      return { priorC, prior, lik, cueLik, post, pOgoal: Z, al, be, th };
     }
 
-    goalInference(stim, task, goal, sample) {
+    goalInference(stim, task, goal, sample, instruction) {
       const n = this.n_c;
+      if (instruction && (!this.pI || n !== 2)) throw new Error('The instruction cue needs 2 contexts and a cue reliability.');
       this.stim = stim; this.task = task; this.goal = goal;
-      const J = this._joint(stim, goal, this.cprevCpd);
+      const J = this._joint(stim, goal, this.cprevCpd, instruction ? task : null);
       const rec = this.rec = {
-        stim: stim.slice(), task, goal, first_trial: this.first_trial,
+        stim: stim.slice(), task, goal, first_trial: this.first_trial, instruction: !!instruction,
         p_c_prev: this.cprevCpd.slice(),
         theta_map_s0: J.th.map((row) => row.map((v) => v[stim[0]])), // [c][cp]
         alpha_slice: J.al.map((ac) => ac.map((v) => v[stim[0]][stim[1]])), // [a][c]
-        prior_c: J.priorC, prior: J.prior, lik: J.lik, exact_post: J.post,
-        exact_surprise: -Math.log(J.pOgoal),
+        prior_c: J.priorC, prior: J.prior, lik: J.lik, cue_lik: J.cueLik, exact_post: J.post,
+        exact_surprise: -Math.log(J.pOgoal), // −log p(o = goal [, i = task] | s)
+        // predicted outcome before the goal is used: p(o | s) = Σ_a,c p(a, c | s) p(o | s, a, c)
+        prior_o: [0, 1].map((o) => { let s = 0; for (let a = 0; a < 2; a++) for (let c = 0; c < n; c++) s += J.prior[a][c] * J.be[o][c][stim[0]][stim[1]][a]; return s; }),
       };
       let post;
       if (!sample) {
@@ -443,11 +535,13 @@ code { font-family: var(--f-mono); font-size: 12px; }
           const c = choice(this.rng, priorC);
           const a = choice(this.rng, [al[0][c][s0][s1], al[1][c][s0][s1]]);
           const o = choice(this.rng, [be[0][c][s0][s1][a], be[1][c][s0][s1][a]]);
-          const acc = o === goal;
+          // with the cue, i ~ p(i | c) is drawn too and must match the instructed task
+          const i = instruction ? choice(this.rng, [this.pI[0][c], this.pI[1][c]]) : task;
+          const acc = o === goal && i === task;
           if (acc) { counts[a][c] += 1; nAcc++; } else nRej++;
           const p = norm(counts);
           trace.push(p);
-          proposals.push({ c, a, o, acc });
+          proposals.push(instruction ? { c, a, o, i, acc } : { c, a, o, acc });
           costs.push(kl(flat(p), flat(J.prior)));
           metas.push(kl(p[0].map((v, c2) => v + p[1][c2]), priorC));
           errors.push(errOf(p));
@@ -463,10 +557,13 @@ code { font-family: var(--f-mono); font-size: 12px; }
       const cost = kl(flat(post), flat(J.prior));
       const meta = kl(this.goal_posterior_c, J.priorC);
       const error = -flat(zipArr(post, J.lik, (p, l) => p * Math.log(l))).reduce((x, y) => x + y, 0);
+      // instruction error term (model.py): −Σ_c p(c | s, o, i) log p(i = task | c)
+      const instrError = instruction ? -this.goal_posterior_c.reduce((s, p, c) => s + p * Math.log(this.pI[task][c]), 0) : null;
       Object.assign(rec, {
         post, post_a: this.goal_posterior_a.slice(), post_c: this.goal_posterior_c.slice(),
         prior_a: J.prior.map((r) => r.reduce((x, y) => x + y, 0)),
-        control_cost: cost - meta, meta_cost: meta, cost, error, surprise_goal_inference: cost + error,
+        control_cost: cost - meta, meta_cost: meta, cost, error, instr_error: instrError,
+        surprise_goal_inference: cost + error + (instruction ? instrError : 0),
         congruency: stim[0] === stim[1], repeat: this.prev_task === task,
       });
     }
@@ -586,30 +683,85 @@ code { font-family: var(--f-mono); font-size: 12px; }
     saveData() { this.first_trial = false; const r = this.rec; this.rec = null; return r; }
   }
 
-  // ---------- one full run over a trial sequence ----------
-  // settings: { n_c, cfg, hard: {pA,pO,pC}, priors: {alpha,beta,theta}, p_c_prev, sample, threshold,
-  //             map_estimate, outcome_uncertainty, steps: {outcome, habit, taskset, context}, fr, seed }
-  function runSequence(trials, S) {
-    const arr = makeCpdArrays(Object.assign({ n_c: S.n_c }, S.cfg));
-    const model = new CIM({
+
+  // ---------- model snapshots (used to carry a pretrained model into a run) ----------
+  function snapshot(m) {
+    return {
+      n_c: m.n_c, alpha: deep(m.alpha.values), alphaP: deep(m.alpha.params), beta: deep(m.beta.values), betaP: deep(m.beta.params),
+      theta: deep(m.theta.values), thetaP: deep(m.theta.params), p_c_prev: m.p_c_prev.slice(), cprevCpd: m.cprevCpd.slice(),
+      first_trial: m.first_trial, prev_task: m.prev_task,
+      outcome_posterior_c: m.outcome_posterior_c ? m.outcome_posterior_c.slice() : null,
+    };
+  }
+  function restore(st, opts) {
+    const m = new CIM({ n_c: st.n_c, alpha_prior: 1, beta_prior: 1, theta_prior: 1, seed: opts.seed,
+      sampling_threshold: opts.threshold, cue_reliability: opts.cue });
+    m.alpha.values = deep(st.alpha); m.alpha.params = deep(st.alphaP);
+    m.beta.values = deep(st.beta); m.beta.params = deep(st.betaP);
+    m.theta.values = deep(st.theta); m.theta.params = deep(st.thetaP);
+    m.p_c_prev = st.p_c_prev.slice(); m.cprevCpd = st.cprevCpd.slice();
+    m.first_trial = st.first_trial; m.prev_task = st.prev_task;
+    m.outcome_posterior_c = st.outcome_posterior_c ? st.outcome_posterior_c.slice() : null;
+    return m;
+  }
+  const stickyPC = (n, cts) => (n > 1 ? fill([n, n, 2], 0).map((row, c) => row.map((col, cp) => col.map(() => (c === cp ? cts : (1 - cts) / (n - 1))))) : [[[1, 1]]]);
+
+  // Build the model a run starts from: fresh from the settings, or a pretrained model with the
+  // resets of simulations/learn_effects/perform_tasks.py.
+  function buildModel(S, arr) {
+    const common = { seed: S.seed, threshold: S.threshold, cue: S.cue === undefined ? null : S.cue };
+    if (S.pretrained) {
+      const st = S.pretrainedRole === 'one' ? S.pretrained.one : S.pretrained.two;
+      const m = restore(st, common);
+      // perform_tasks.py resets: prev_task, outcome_posterior_c, a fresh sticky θ and the net's c_prev CPD.
+      m.prev_task = null;
+      m.outcome_posterior_c = null;
+      // θ ← Dirichlet(params = p(c | c_prev, s)); perform_tasks.py passes the CPD itself (cts = .99) as counts,
+      // which is prior strength 0.5 in this viewer's convention (counts = CPD × strength × 2).
+      m.theta = new Dirichlet(mapArr(stickyPC(m.n_c, S.cfg.cts), (v) => v * S.priors.theta * 2));
+      // AS IN CODE: only the c_prev CPD in the net is reset; the attribute self.p_c_prev (used by learn_context
+      // for the c_prev side of its pseudo-counts on the next trial) keeps the last pretraining value.
+      m.cprevCpd = (m.n_c > 1 && S.p_c_prev) ? S.p_c_prev.slice() : fill([m.n_c], 1 / m.n_c);
+      // first_trial stays false: the model has seen trials already.
+      return m;
+    }
+    return new CIM({
       n_c: S.n_c,
       p_a__c_s: S.hard.pA ? arr.pA : null,
       p_o__c_s_a: S.hard.pO ? arr.pO : null,
       p_c__c_s: S.hard.pC ? arr.pC : null,
       p_c_prev: S.p_c_prev, alpha_prior: S.priors.alpha, beta_prior: S.priors.beta, theta_prior: S.priors.theta,
-      sampling_threshold: S.threshold, seed: S.seed,
+      sampling_threshold: S.threshold, seed: S.seed, cue_reliability: common.cue,
     });
+  }
+
+  // ---------- one full run over a trial sequence ----------
+  // settings: { n_c, cfg, hard: {pA,pO,pC}, priors: {alpha,beta,theta}, p_c_prev, sample, threshold,
+  //             map_estimate, outcome_uncertainty, steps: {outcome, habit, taskset, context}, fr, seed,
+  //             cue (cue reliability or null: goal inference with instruction = True), pretrained, pretrainedRole }
+  function runSequence(trials, S) {
+    const arr = makeCpdArrays(Object.assign({ n_c: S.n_c }, S.cfg));
+    const model = buildModel(S, arr);
+    const useCue = S.cue !== undefined && S.cue !== null;
     const out = [];
     for (const t of trials) {
-      model.goalInference([t.s0, t.s1], t.task || 0, t.goal || 0, S.sample);
+      model.goalInference([t.s0, t.s1], t.task || 0, t.goal || 0, S.sample, useCue);
       model.interact(arr.gt, S.outcome_uncertainty || 0, S.map_estimate);
       if (S.steps.outcome) model.outcomeInference();
-      if (S.steps.habit) model.learnHabit(S.habit_dim === undefined ? null : S.habit_dim);
-      if (S.steps.taskset) model.learnTaskSet();
+      // learning order: habit → task set as in perform_tasks.py (default), or task set → habit as in learn_contexts.py.
+      // The updates don't interact, but learn_habit's overall_goal_surprise is computed with the β current at that point.
+      if (S.order === 'th') {
+        if (S.steps.taskset) model.learnTaskSet();
+        if (S.steps.habit) model.learnHabit(S.habit_dim === undefined ? null : S.habit_dim);
+      } else {
+        if (S.steps.habit) model.learnHabit(S.habit_dim === undefined ? null : S.habit_dim);
+        if (S.steps.taskset) model.learnTaskSet();
+      }
       if (S.steps.context) model.learnContext(S.fr);
       model.updateContext();
       out.push(model.saveData());
     }
+    out.final = snapshot(model);
     return out;
   }
 
@@ -618,13 +770,14 @@ code { font-family: var(--f-mono); font-size: 12px; }
   // log BF = surprise(K=2) - surprise(K=1) (overall_goal_surprise when habit learning runs, else
   // surprise_goal_inference); p(K=1) = sigmoid(log BF + log p(K=1)/p(K=2));
   // model cost = sum p_prev * (log p_prev - log p)  (AS IN CODE: KL(p_prev || p_new)).
+  // With a pretrained model the twin is the 1-context model pretrained alongside it (learn_contexts.py).
   function runStructures(trials, S) {
     const main = runSequence(trials, S);
     if (S.n_c < 2) return { main, twin: null, pm: null };
     const cfg1 = {};
     for (const k of ['hs', 'h_dim', 'tss', 'ts_dim']) cfg1[k] = [S.cfg[k][0]];
     cfg1.cts = S.cfg.cts;
-    const S1 = Object.assign({}, S, { n_c: 1, cfg: cfg1, p_c_prev: null, seed: S.seed + 7919 });
+    const S1 = Object.assign({}, S, { n_c: 1, cfg: cfg1, p_c_prev: null, seed: S.seed + 7919, cue: null, pretrainedRole: 'one' });
     const twin = runSequence(trials, S1);
     let pm = [0.5, 0.5];
     const out = [];
@@ -641,36 +794,212 @@ code { font-family: var(--f-mono); font-size: 12px; }
     return { main, twin, pm: out };
   }
 
-  // Trial generator: blocks separated by '|'; tokens 'RG' (ink, word), 'RG*20' (repeat),
-  // or '20@0.75' (20 random trials, 75 % congruent, like gen_stimuli.gen_stims_one_block with cp).
+  // ---------- pretraining: phase 1 of the paper (simulations/learn_effects/learn_contexts.py) ----------
+  // Two conditions, as in learn_contexts.py __main__ (4 blocks x 640 trials, blocks alternate A, B, A, B):
+  //   habit:   task ink in both blocks; block A: the goal follows the WORD response w.p. .95,
+  //            block B: it follows the INK response w.p. .70; outcome noise .05            -> h_models (PCE runs)
+  //   taskset: task ink in block A, word in block B; goal random (follows w.p. .5);
+  //            outcome noise .001                                                          -> ts_models (PSE runs)
+  // Models: a 2-context model (flat α, β; θ from cts = .99; p(c_prev) = [.999, .001]) and a 1-context twin.
+  // Per trial (exact inference, MAP response): goal inference, interact, outcome inference,
+  // learn task set, learn habit, update context (learn_context is commented out in the script).
+  const PRETRAIN = {
+    habit: { gps: [0.95, 0.7], task_per_block: [0, 0], outcome_certainty: 0.95 },
+    taskset: { gps: [0.5, 0.5], task_per_block: [0, 1], outcome_certainty: 0.999 },
+  };
+  const GT = makeCpdArrays({ n_c: 1, hs: [0.5], h_dim: [0], tss: [0.5], ts_dim: [0], cts: 1 }).gt;
+  // learn_contexts.gen_stims: block A (id 0) sets the goal to the outcome of the response to the IRRELEVANT
+  // dimension, block B (id 1) to that of the RELEVANT dimension, each kept w.p. goal_pred_strength, else flipped.
+  function genPretrainStims(P, rng, nBlocks, nPer) {
+    const out = [];
+    for (let b = 0; b < nBlocks; b++) {
+      const id = b % 2;
+      for (let i = 0; i < nPer; i++) {
+        const s0 = rng() < 0.5 ? 0 : 1, s1 = rng() < 0.5 ? 0 : 1;
+        const task = P.task_per_block[id];
+        const rel = task === 0 ? s0 : s1, irrel = task === 0 ? s1 : s0;
+        const pred = GT[task][s0][s1][id === 0 ? irrel : rel];
+        const goal = rng() < P.gps[id] ? pred : 1 - pred;
+        out.push({ s0, s1, task, goal, block: b });
+      }
+    }
+    return out;
+  }
+  // opts (for verification): { stims, noise, nBlocks, nPer, keep }
+  function pretrain(kind, seed, opts) {
+    opts = opts || {};
+    const P = PRETRAIN[kind];
+    if (!P) throw new Error('Unknown pretraining: ' + kind);
+    const rng = makeRng(((seed >>> 0) * 2246822519 + 97) >>> 0);
+    const stims = opts.stims || genPretrainStims(P, rng, opts.nBlocks || 4, opts.nPer || 640);
+    const noise = opts.noise === undefined ? 1 - P.outcome_certainty : opts.noise;
+    const arr2 = makeCpdArrays({ n_c: 2, hs: [0.5, 0.5], h_dim: [0, 0], tss: [0.5, 0.5], ts_dim: [0, 0], cts: 0.99 });
+    const two = new CIM({ n_c: 2, p_c__c_s: arr2.pC, p_c_prev: [0.999, 0.001], alpha_prior: 1, beta_prior: 1, theta_prior: 1, seed: seed * 31 + 1 });
+    const one = new CIM({ n_c: 1, p_c__c_s: [[[1, 1]]], alpha_prior: 1, beta_prior: 1, theta_prior: 1, seed: seed * 31 + 2 });
+    const kept = { two: [], one: [] };
+    for (const t of stims) {
+      for (const [name, m] of [['two', two], ['one', one]]) {
+        m.goalInference([t.s0, t.s1], t.task, t.goal, false, false);
+        m.interact(arr2.gt, noise, true);
+        m.outcomeInference();
+        m.learnTaskSet();
+        m.learnHabit(null);
+        m.updateContext();
+        const r = m.saveData();
+        if (opts.keep) kept[name].push(r);
+      }
+    }
+    const res = { kind, seed, n_trials: stims.length, two: snapshot(two), one: snapshot(one), summary: summarizeModel(snapshot(two)) };
+    if (opts.keep) { res.records = kept; res.stims = stims; }
+    return res;
+  }
+  // What a model has learned, per context, on the two incongruent stimuli (RG, GR):
+  // p(word response) under α, p(o = correct | ink response) and | word response under β, and the count mass.
+  function summarizeModel(st) {
+    const al = new Dirichlet(st.alpha).map(), be = new Dirichlet(st.beta).map();
+    const inc = [[0, 1], [1, 0]];
+    const avg = (f) => (f(inc[0]) + f(inc[1])) / 2;
+    const out = [];
+    for (let c = 0; c < st.n_c; c++) {
+      out.push({
+        c,
+        word_response: avg(([s0, s1]) => al[s1][c][s0][s1]),
+        ts_ink: avg(([s0, s1]) => be[0][c][s0][s1][s0]),
+        ts_word: avg(([s0, s1]) => be[0][c][s0][s1][s1]),
+        alpha_counts: flat(st.alpha.map((x) => x[c])).reduce((x, y) => x + y, 0),
+        beta_counts: flat(st.beta.map((x) => x[c])).reduce((x, y) => x + y, 0),
+      });
+    }
+    return out;
+  }
+
+  // ---------- trial sequences ----------
+  // gen_stimuli.gen_stims_one_block, drawn one trial at a time. Python names → viewer names:
+  //   cp → congruent, sp → switch, itc → red_congruent, its → red_switch, t0 → task.
+  // The "item" is the ink (s0): red_congruent = p(congruent | red ink) (green ink gets the complement, at
+  // congruent = .5); red_switch = p(switch | red ink) (green ink gets the complement, at switch = .5).
+  function blockSampler(o, rng) {
+    const cp = o.cp, sp = o.sp === null ? 0 : o.sp, itc = o.itc, its = o.its;
+    const norm0 = (A) => A[0].map((row, i) => row.map((_, j) => {
+      const z = A[0][i][j] + A[1][i][j];
+      return z > 0 ? [A[0][i][j] / z, A[1][i][j] / z] : [0.5, 0.5];
+    }));
+    // p_1__0[s1][s0][item], normalised over s1; used at item = s0
+    const P1 = norm0([[[cp * itc, cp * (1 - itc)], [(1 - cp) * (1 - itc), (1 - cp) * itc]],
+                      [[(1 - cp) * (1 - itc), (1 - cp) * itc], [cp * itc, cp * (1 - itc)]]]);
+    // p_t__t[t][t_prev][item], normalised over t; used at item = s0
+    const PT = norm0([[[(1 - sp) * (1 - its), (1 - sp) * its], [sp * its, sp * (1 - its)]],
+                      [[sp * its, sp * (1 - its)], [(1 - sp) * (1 - its), (1 - sp) * its]]]);
+    let prev = null;
+    return {
+      stim() { const s0 = rng() < 0.5 ? 0 : 1; return [s0, choice(rng, P1[s0][s0])]; },
+      task(s0) {
+        let t;
+        if (!o.switching) t = o.task;
+        else if (prev === null) t = o.taskSet ? o.task : choice(rng, [(PT[0][s0][0] + PT[1][s0][0]) / 2, (PT[0][s0][1] + PT[1][s0][1]) / 2]);
+        else t = choice(rng, PT[prev][s0]);
+        return t;
+      },
+      setPrev(t) { prev = t; },
+    };
+  }
+
+  const NUM = '(?:0?\\.\\d+|1(?:\\.0*)?|0)';
+  function parseProb(v, what) {
+    if (!new RegExp('^' + NUM + '$').test(v)) throw new Error(what + ' needs a probability between 0 and 1, e.g. ' + what + '=0.75 (got “' + v + '”).');
+    return parseFloat(v);
+  }
+  function parseOptions(txt, label) {
+    const o = {};
+    const toks = txt.replace(/\s*=\s*/g, '=').replace(/\s*[:@]\s*/g, ':').split(/[\s,;]+/).filter(Boolean);
+    for (let k = 0; k < toks.length; k++) {
+      const m = toks[k].toLowerCase().match(/^([a-z_]+)=(.+)$/);
+      if (!m) throw new Error(label + ': “' + toks[k] + '” is not an option. Options look like key=value, e.g. [task=word switch=0.75].');
+      const key = m[1], val = m[2];
+      if (key === 'task') {
+        if (/^(ink|i|colou?r|0)$/.test(val)) o.task = 0;
+        else if (/^(word|w|read|1)$/.test(val)) o.task = 1;
+        else throw new Error(label + ': task is ink or word (got “' + val + '”).');
+      } else if (key === 'switch') o.sp = parseProb(val, 'switch');
+      else if (key === 'congruent') o.cp = parseProb(val, 'congruent');
+      else if (key === 'red_congruent') o.itc = parseProb(val, 'red_congruent');
+      else if (key === 'red_switch') o.its = parseProb(val, 'red_switch');
+      else if (key === 'goal') {
+        const g = val.split(':');
+        if (/^(correct|task|default)$/.test(g[0]) && g.length === 1) { o.goal = { dim: null, p: 1 }; continue; }
+        const dim = /^(ink|i)$/.test(g[0]) ? 0 : /^(word|w)$/.test(g[0]) ? 1 : -1;
+        if (dim < 0) throw new Error(label + ': goal is correct, ink or word, e.g. goal=word 0.95 (got “' + val + '”).');
+        let p = 1;
+        if (g.length > 1) p = parseProb(g[1], 'goal');
+        else if (k + 1 < toks.length && new RegExp('^' + NUM + '$').test(toks[k + 1])) { p = parseFloat(toks[k + 1]); k++; }
+        o.goal = { dim, p };
+      } else throw new Error(label + ': unknown option “' + key + '”. Use task, switch, congruent, red_congruent, red_switch or goal.');
+    }
+    return o;
+  }
+
+  // Sequence syntax. Blocks are separated by '|'. A block may start with options in brackets:
+  //   [task=ink|word]            task for the block (default ink); with switching, the task of its first trial
+  //   [switch=0.75]              tasks drawn with a 75 % switch rate                       (Python sp)
+  //   [congruent=0.75]           congruency of random trials (default 0.5)                (Python cp)
+  //   [red_congruent=0.75]       item-specific congruency: red ink 75 % congruent, green ink 25 %   (Python itc)
+  //   [red_switch=0.25]          item-specific switching: red ink 25 % switches, green ink 75 %     (Python its; implies switch=0.5)
+  //   [goal=word 0.95]           the goal is the outcome the WORD response gets, w.p. .95, else the other one
+  //                              (as learn_contexts.gen_stims); goal=ink p likewise; goal=correct (default): o = 0
+  // Trials: RG (ink red, word GREEN), RG.w (read the word), RG.i (name the ink), RG*20 / RG.w*20 (repeat),
+  //   20 (20 random trials from the block options), 20@0.75 (20 random trials, 75 % congruent).
   function parseBlocks(str, seed) {
     const rng = makeRng((seed >>> 0) * 2654435761 + 11);
     const blocks = str.split('|').map((b) => b.trim()).filter(Boolean);
     if (!blocks.length) throw new Error('Enter at least one trial, e.g. RG.');
     const trials = [];
     blocks.forEach((b, bi) => {
-      const toks = b.toUpperCase().split(/[\s,]+/).filter(Boolean);
-      if (!toks.length) throw new Error('Block ' + (bi + 1) + ' is empty.');
+      const label = 'Block ' + (bi + 1);
+      let optTxt = '';
+      const body = b.replace(/\[([^\]]*)\]/g, (_, x) => { optTxt += ' ' + x; return ' '; });
+      if (/[\[\]]/.test(body)) throw new Error(label + ': unmatched bracket.');
+      const user = parseOptions(optTxt, label);
+      const o = {
+        task: user.task === undefined ? 0 : user.task, taskSet: user.task !== undefined,
+        cp: user.cp === undefined ? 0.5 : user.cp, itc: user.itc === undefined ? 0.5 : user.itc,
+        its: user.its === undefined ? 0.5 : user.its,
+        sp: user.sp === undefined ? (user.its !== undefined ? 0.5 : null) : user.sp,
+        goal: user.goal || { dim: null, p: 1 },
+      };
+      o.switching = o.sp !== null;
+      const gen = blockSampler(o, rng);
+      const goalOf = (s0, s1, task) => {
+        if (o.goal.dim === null) return 0;
+        const pred = GT[task][s0][s1][o.goal.dim === 0 ? s0 : s1];
+        return rng() < o.goal.p ? pred : 1 - pred;
+      };
+      const push = (s0, s1, task) => { gen.setPrev(task); trials.push({ s0, s1, task, goal: goalOf(s0, s1, task), block: bi }); };
+      const toks = body.toUpperCase().split(/[\s,]+/).filter(Boolean);
+      if (!toks.length) throw new Error(label + ' has no trials.');
       for (const tok of toks) {
         let m;
-        if ((m = tok.match(/^([RG])([RG])(?:[*X](\d+))?$/))) {
-          const n = m[3] ? parseInt(m[3], 10) : 1;
-          for (let i = 0; i < n; i++) trials.push({ s0: m[1] === 'R' ? 0 : 1, s1: m[2] === 'R' ? 0 : 1, task: 0, goal: 0, block: bi });
-        } else if ((m = tok.match(/^(\d+)@(0?\.\d+|1(?:\.0*)?|0)$/))) {
-          const n = parseInt(m[1], 10), cp = parseFloat(m[2]);
+        if ((m = tok.match(/^([RG])([RG])(?:\.([IW]))?(?:[*X](\d+))?(?:\.([IW]))?$/))) {
+          const n = m[4] ? parseInt(m[4], 10) : 1;
+          const suf = m[3] || m[5];
+          const task = suf ? (suf === 'W' ? 1 : 0) : o.task;
+          for (let i = 0; i < n; i++) push(m[1] === 'R' ? 0 : 1, m[2] === 'R' ? 0 : 1, task);
+        } else if ((m = tok.match(new RegExp('^(\\d+)(?:@(' + NUM + '))?$')))) {
+          const n = parseInt(m[1], 10);
+          const gen2 = m[2] !== undefined ? blockSampler(Object.assign({}, o, { cp: parseFloat(m[2]) }), rng) : gen;
           for (let i = 0; i < n; i++) {
-            const s0 = rng() < 0.5 ? 0 : 1;
-            const s1 = rng() < cp ? s0 : 1 - s0;
-            trials.push({ s0, s1, task: 0, goal: 0, block: bi });
+            const [s0, s1] = gen2.stim();
+            const task = gen.task(s0);
+            push(s0, s1, task);
           }
-        } else throw new Error('“' + tok + '” is not a trial. Use RG, RG*20 or 20@0.75.');
+        } else throw new Error(label + ': “' + tok + '” is not a trial. Use RG, RG.w, RG*20, 20 or 20@0.75.');
+        if (trials.length > 2000) throw new Error('Keep it to 2000 trials or fewer.');
       }
     });
-    if (trials.length > 2000) throw new Error('Keep it to 2000 trials or fewer.');
     return trials;
   }
 
-  const api = { runStructures, parseBlocks, CIM, makeCpdArrays, runSequence, klDirichlet, lgamma, digamma, makeRng };
+  const api = { runStructures, parseBlocks, CIM, makeCpdArrays, runSequence, pretrain, summarizeModel, snapshot,
+    blockSampler, klDirichlet, lgamma, digamma, makeRng, PRETRAIN };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.CGI = api;
 })(this);
@@ -683,21 +1012,46 @@ code { font-family: var(--f-mono); font-size: 12px; }
   // stroop_config from model_config.py, with the trial loop of perform_tasks.py
   const BASE = { nc: '2', hs0: .9, hs1: .5, hd0: '1', hd1: '1', ts0: .99, ts1: .99, td0: '0', td1: '0', cts: .7, pc0: .5,
     pr_a: 1, pr_b: 1, pr_t: 1, h_pA: true, h_pO: true, h_pC: true, sample: true, threshold: 100, action: 'map', noise: 0,
-    st_outcome: true, st_habit: true, st_taskset: true, st_context: true, hdim: '', fr: .05, cmp: true, mixv: 'mix' };
+    st_outcome: true, st_habit: true, st_taskset: true, st_context: true, hdim: '', fr: .05, cmp: true, mixv: 'mix',
+    pretrain: 'none', cue: false, cue_r: .9, order: 'ht' };
+  // perform_tasks.py: pretrained model, sampling, no outcome inference, habit then task-set learning,
+  // context learning with forgetting .05, θ reset to cts = .99 with counts = CPD (strength 0.5), c_prev = [.5, .5]
+  const PAPER = Object.assign({}, BASE, { cts: .99, pc0: .5, pr_t: .5, sample: true, threshold: 100, st_outcome: false,
+    st_habit: true, st_taskset: true, st_context: true, fr: .05, cmp: false, order: 'ht', _sel: 0, _tab: 'macro' });
+  // learn_contexts.py: flat α, β; θ from cts = .99; p(c_prev) = [.999, .001]; exact inference with outcome inference,
+  // task set then habit, no context learning (4 × 500 instead of the paper's 4 × 640, to stay under the 2000-trial cap)
+  const ACQ = Object.assign({}, BASE, { nc: '2', hs0: .5, hs1: .5, hd0: '0', hd1: '0', ts0: .5, ts1: .5, td0: '0', td1: '0', cts: .99, pc0: .999,
+    h_pA: false, h_pO: false, h_pC: true, pr_a: 1, pr_b: 1, pr_t: 1, sample: false, st_outcome: true, st_habit: true, st_taskset: true,
+    st_context: false, hdim: '', fr: 0, cmp: true, order: 'th', _sel: 0, _tab: 'macro' });
   const PRESETS = {
     // simulations/inference_illustration.py (Figure 7)
     fig7: Object.assign({}, BASE, { seq: 'RR*20 | GR*20 | RR*20 | GR*20', hs0: .5, hs1: .5, hd0: '0', hd1: '0', cts: .99, pc0: 1,
       h_pA: false, sample: false, st_outcome: false, st_taskset: false, st_context: false, hdim: '1', fr: 0, _sel: 20, _tab: 'macro' }),
     pce: Object.assign({}, BASE, { seq: '40@0.75 | 40@0.25 | 40@0.75 | 40@0.25', st_outcome: false, pr_a: 10, pr_b: 10, pr_t: 10, _sel: 0, _tab: 'macro' }),
     single: Object.assign({}, BASE, { seq: 'RR GR GG RG', _sel: 3, _tab: 'micro' }),
+    lwpce: Object.assign({}, PAPER, { seq: '[congruent=0.75] 100 | [congruent=0.25] 100', pretrain: 'habit' }),
+    ispce: Object.assign({}, PAPER, { seq: '[red_congruent=0.75] 200', pretrain: 'habit' }),
+    lwpse: Object.assign({}, PAPER, { seq: '[switch=0.25] 100 | [switch=0.75] 100', pretrain: 'taskset', cue: true, cue_r: .9 }),
+    ispse: Object.assign({}, PAPER, { seq: '[switch=0.5 red_switch=0.25] 200', pretrain: 'taskset', cue: true, cue_r: .9 }),
+    acqh: Object.assign({}, ACQ, { seq: '[goal=word 0.95] 500 | [goal=ink 0.7] 500 | [goal=word 0.95] 500 | [goal=ink 0.7] 500', noise: .05 }),
+    acqts: Object.assign({}, ACQ, { seq: '[task=ink goal=ink 0.5] 500 | [task=word goal=word 0.5] 500 | [task=ink goal=ink 0.5] 500 | [task=word goal=word 0.5] 500', noise: .001 }),
   };
   const COL = ['red', 'green'];
+  const TASK = ['name the ink', 'read the word'];
   const fmt = (v, d = 3) => (v === undefined || v === null || Number.isNaN(v)) ? '–' : (Math.abs(v) === Infinity ? '∞' : v.toFixed(d));
   const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
 
   let runs = [], sel = 0, cursor = null, trialsParsed = [], tab = 'macro';
   const num = (id) => parseFloat($(id).value);
+  const ptCache = {};
+  function getPretrained(kind, seed) {
+    const k = kind + ':' + seed;
+    if (!ptCache[k]) ptCache[k] = CGI.pretrain(kind, seed);
+    return ptCache[k];
+  }
   function settings() {
+    const pt = $('pretrain').value;
+    if (pt !== 'none') $('nc').value = '2';
     const nc = parseInt($('nc').value, 10);
     const cfg = nc === 2
       ? { hs: [num('hs0'), num('hs1')], h_dim: [+$('hd0').value, +$('hd1').value], tss: [num('ts0'), num('ts1')], ts_dim: [+$('td0').value, +$('td1').value], cts: num('cts') }
@@ -713,14 +1067,40 @@ code { font-family: var(--f-mono); font-size: 12px; }
       fr: num('fr') || 0, seed: Math.max(1, Math.round(num('seed'))),
       habit_dim: $('hdim').value === '' ? null : +$('hdim').value,
       compare: $('cmp').checked && nc === 2, mixv: $('mixv').value,
+      order: $('order').value,
+      cue: ($('cue').checked && nc === 2) ? Math.min(0.999, Math.max(0.5, num('cue_r') || 0.9)) : null,
+      pretrain: pt,
     };
+  }
+  function syncControls(S) {
+    const pt = S.pretrain !== 'none';
+    ['nc', 'hs0', 'hs1', 'hd0', 'hd1', 'ts0', 'ts1', 'td0', 'td1', 'h_pA', 'h_pO', 'h_pC', 'pr_a', 'pr_b'].forEach((id) => { $(id).disabled = pt; });
+    $('modelPt').hidden = !pt;
+    $('cue_r').disabled = !$('cue').checked;
+    $('cue').disabled = S.n_c !== 2;
+    const cueOn = S.cue !== null;
+    $('cmp').disabled = cueOn || S.n_c !== 2; $('mixv').disabled = cueOn || !$('cmp').checked;
+    $('cmpOff').hidden = !cueOn;
+    if (cueOn) S.compare = false;
+  }
+  function renderPtSummary(P) {
+    const box = $('ptSummary');
+    if (!P) { box.hidden = true; return; }
+    const rows = P.summary.map((x) => [x.word_response, x.ts_ink, x.ts_word, Math.round(x.alpha_counts)]);
+    box.innerHTML = '<p class="hint" style="margin:2px 0 3px">Learned, on incongruent stimuli (' + P.n_trials + ' pretraining trials):</p>' +
+      tbl(P.summary.map((x) => 'c' + x.c), ['p(word resp.)', 'p(✓|ink)', 'p(✓|word)', 'α counts'], rows, { corner: '', d: 2 }).replace(/<td>(\d+)\.00<\/td>/g, '<td>$1</td>') +
+      '<p class="hint" style="margin-top:3px">p(word resp.): α, the habit. p(✓|ink), p(✓|word): β, the chance of the correct outcome after the ink or the word response, i.e. which task the context expects.</p>';
+    box.hidden = false;
   }
 
   function run() {
     const e = $('seqErr');
     const S = settings();
+    syncControls(S);
     try { trialsParsed = CGI.parseBlocks($('seq').value, S.seed); e.hidden = true; }
     catch (err) { e.textContent = err.message; e.hidden = false; return; }
+    if (S.pretrain !== 'none') { S.pretrained = getPretrained(S.pretrain, S.seed); renderPtSummary(S.pretrained); }
+    else renderPtSummary(null);
     document.querySelectorAll('.c1col, .c1row').forEach((el) => { el.style.visibility = S.n_c === 2 ? '' : 'hidden'; });
     document.querySelectorAll('.c1row').forEach((el) => { el.hidden = S.n_c !== 2; });
     const res = S.compare ? CGI.runStructures(trialsParsed, S) : { main: CGI.runSequence(trialsParsed, S), twin: null, pm: null };
@@ -772,11 +1152,15 @@ code { font-family: var(--f-mono); font-size: 12px; }
     const learnSum = (r) => (r.habit || r.taskset || r.context) ? (r.habit ? r.habit.learn_cost : 0) + (r.taskset ? r.taskset.learn_cost : 0) + (r.context ? r.context.learn_cost : 0) : null;
     const blocks = []; trialsParsed.forEach((tr, i) => { if (!blocks.length || blocks[blocks.length - 1].b !== tr.block) blocks.push({ b: tr.block, s: i, e: i + 1 }); else blocks[blocks.length - 1].e = i + 1; });
     const ink = css('--ink'), ink3 = css('--ink-3'), cost = css('--s-cost');
+    // condition used to split RTs: task switch vs repeat when the task varies, else incongruent vs congruent
+    const hasSwitch = trialsParsed.some((t) => t.task !== trialsParsed[0].task);
+    const condOf = (i) => hasSwitch ? (i === 0 ? null : trialsParsed[i].task !== trialsParsed[i - 1].task) : !runs[i].congruency;
+    const condNames = hasSwitch ? ['switch', 'repeat'] : ['incongruent', 'congruent'];
     const P = [];
-    P.push({ title: 'p(correct action)', lo: 0, hi: 1, lines: [{ v: ser((r) => r.post_a[r.correct_action]), c: ink, name: 'posterior' }, { v: ser((r) => r.prior_a[r.correct_action]), c: ink3, dash: true, name: 'prior' }] });
+    P.push({ title: 'p(goal action) · the response that reaches the trial\'s goal', lo: 0, hi: 1, lines: [{ v: ser((r) => r.post_a[r.correct_action]), c: ink, name: 'posterior' }, { v: ser((r) => r.prior_a[r.correct_action]), c: ink3, dash: true, name: 'prior' }] });
     if (S.n_c === 2 && mode !== 'K1') P.push({ title: 'p(c = c0)', lo: 0, hi: 1, lines: [{ v: ser((r) => r.post_c[0]), c: ink, name: 'posterior' }, { v: ser((r) => r.prior_c[0]), c: ink3, dash: true, name: 'prior' }] });
     if (res.pm) P.push({ title: 'p(K = 2): world-model structure', lo: 0, hi: 1, lines: [{ v: res.pm.map((x) => x.p_K2), c: ink, name: 'posterior' }] });
-    if (S.sample) P.push({ title: 'Samples to decide (RT)', dots: ser((r) => r.sampling ? r.sampling.n_samples : null), err: runs.map((r) => r.outcome !== 0) });
+    if (S.sample) P.push({ title: 'Samples to decide (RT)', dots: ser((r) => r.sampling ? r.sampling.n_samples : null), err: runs.map((r) => r.outcome !== r.goal), cond: runs.map((_, i) => condOf(i)), condNames });
     P.push({ title: 'Goal surprise', lines: [{ v: ser((r) => r.surprise_goal_inference), c: ink, name: 'nats' }] });
     P.push({ title: 'Action adaptation · control cost', lines: [{ v: ser((r) => r.control_cost), c: cost, name: 'nats' }] });
     if (S.steps.habit || S.steps.taskset || S.steps.context) P.push({ title: 'Parameter learning · KL summed over α, β, θ', lines: [{ v: ser(learnSum), c: cost, name: 'nats' }] });
@@ -787,19 +1171,27 @@ code { font-family: var(--f-mono); font-size: 12px; }
 
     // stimulus strip with block labels
     {
-      const H = 34, svg = el('svg', { class: 'plot', viewBox: '0 0 ' + W + ' ' + H, role: 'img', 'aria-label': 'Trials and blocks' });
+      const anyWord = trialsParsed.some((t) => t.task === 1), anyGoal = trialsParsed.some((t) => t.goal !== 0);
+      const H = 46, svg = el('svg', { class: 'plot', viewBox: '0 0 ' + W + ' ' + H, role: 'img', 'aria-label': 'Trials and blocks' });
       blocks.forEach((b, k) => {
         if (k % 2 === 1) el('rect', { x: padL + b.s * w, y: 0, width: (b.e - b.s) * w, height: H, fill: css('--grid') }, svg);
         const tx = el('text', { x: padL + b.s * w + 3, y: 10 }, svg); tx.textContent = 'B' + (k + 1);
       });
-      const tl = el('text', { x: padL - 6, y: 28, 'text-anchor': 'end' }, svg); tl.textContent = 'incong.';
+      const tl = el('text', { x: padL - 6, y: 41, 'text-anchor': 'end' }, svg); tl.textContent = 'incong.';
+      if (anyWord || anyGoal) { const t2 = el('text', { x: padL - 6, y: 21, 'text-anchor': 'end' }, svg); t2.textContent = [anyWord ? 'word' : '', anyGoal ? 'goal' : ''].filter(Boolean).join('/'); }
+      const bw = Math.max(0.8, w - (w > 3 ? 1 : 0.2)), bx = (i) => padL + i * w + (w > 3 ? 0.5 : 0);
+      let dW = '', dG = '';
       runs.forEach((r, i) => {
         const h = r.congruency ? 5 : 16;
-        el('rect', { x: padL + i * w + (w > 3 ? 0.5 : 0), y: 32 - h, width: Math.max(0.8, w - (w > 3 ? 1 : 0.2)), height: h, fill: css(r.stim[0] === 0 ? '--stim-red' : '--stim-green') }, svg);
+        el('rect', { x: bx(i), y: 44 - h, width: bw, height: h, fill: css(r.stim[0] === 0 ? '--stim-red' : '--stim-green') }, svg);
+        if (trialsParsed[i].task === 1) dW += 'M' + bx(i).toFixed(1) + ',14h' + bw.toFixed(1) + 'v4h' + (-bw).toFixed(1) + 'z';
+        if (trialsParsed[i].goal !== 0) dG += 'M' + bx(i).toFixed(1) + ',20h' + bw.toFixed(1) + 'v3h' + (-bw).toFixed(1) + 'z';
       });
+      if (dW) el('path', { d: dW, fill: css('--ink-2') }, svg);
+      if (dG) el('path', { d: dG, fill: css('--accent') }, svg);
       const cl = el('line', { x1: 0, x2: 0, y1: 0, y2: H, stroke: css('--accent'), 'stroke-width': 1.5, opacity: 0 }, svg); cross.push(cl);
       const head = document.createElement('div'); head.className = 'ph';
-      head.innerHTML = '<span><b>Trials</b> · bar colour = ink; tall bar = incongruent</span><span class="ro" data-mro="-1"></span>';
+      head.innerHTML = '<span><b>Trials</b> · bar colour = ink; tall bar = incongruent' + (anyWord ? '; grey mark = read the word' : '') + (anyGoal ? '; blue mark = goal is the “error” outcome' : '') + '</span><span class="ro" data-mro="-1"></span>';
       box.appendChild(head); box.appendChild(svg); attach(svg);
     }
 
@@ -811,7 +1203,8 @@ code { font-family: var(--f-mono); font-size: 12px; }
       const H = p.hi === 1 ? 92 : 78, top = 6, bot = 6;
       const y = (v) => top + (1 - (Math.min(hi, Math.max(lo, v)) - lo) / (hi - lo)) * (H - top - bot);
       const head = document.createElement('div'); head.className = 'ph';
-      const lg = p.lines && p.lines.length > 1 ? ' <span class="lg">' + p.lines.map((l) => '<span><i' + (l.dash ? ' class="d"' : '') + ' style="border-color:' + l.c + '"></i>' + l.name + '</span>').join('') + '</span>' : '';
+      let lg = p.lines && p.lines.length > 1 ? ' <span class="lg">' + p.lines.map((l) => '<span><i' + (l.dash ? ' class="d"' : '') + ' style="border-color:' + l.c + '"></i>' + l.name + '</span>').join('') + '</span>' : '';
+      if (p.dots) lg = ' <span class="lg"><span><i style="border-color:' + cost + ';border-top-width:6px;width:6px;border-radius:3px"></i>' + p.condNames[0] + '</span><span><i style="border-color:' + ink3 + ';border-top-width:6px;width:6px;border-radius:3px"></i>' + p.condNames[1] + '</span><span>lines: block means</span><span><i style="border-color:' + css('--s-ref') + ';border-top-width:2px;width:8px"></i>ring: missed the goal</span></span>';
       head.innerHTML = '<span><b>' + p.title + '</b>' + lg + '</span><span class="ro" data-mro="' + pi + '"></span>';
       box.appendChild(head);
       const svg = el('svg', { class: 'plot', viewBox: '0 0 ' + W + ' ' + H, role: 'img', 'aria-label': p.title });
@@ -827,13 +1220,21 @@ code { font-family: var(--f-mono); font-size: 12px; }
       });
       if (p.dots) {
         const rr = Math.max(1.5, Math.min(3.5, w * 0.4));
+        const colOf = (c) => c === null ? css('--rule') : c ? cost : ink3;
         p.dots.forEach((v, i) => { if (v === null) return;
-          el('circle', p.err[i] ? { cx: X(i), cy: y(v), r: rr + 1, fill: 'none', stroke: css('--s-ref'), 'stroke-width': 1.5 } : { cx: X(i), cy: y(v), r: rr, fill: ink }, svg); });
+          el('circle', { cx: X(i), cy: y(v), r: rr, fill: colOf(p.cond[i]) }, svg);
+          if (p.err[i]) el('circle', { cx: X(i), cy: y(v), r: rr + 1.8, fill: 'none', stroke: css('--s-ref'), 'stroke-width': 1.3 }, svg); });
+        p.means = blocks.map((b) => {
+          const m = [true, false].map((cv) => { let s = 0, n = 0; for (let i = b.s; i < b.e; i++) if (p.cond[i] === cv && p.dots[i] !== null) { s += p.dots[i]; n++; } return n ? s / n : null; });
+          m.forEach((v, k) => { if (v === null) return; el('line', { x1: padL + b.s * w, x2: padL + b.e * w, y1: y(v), y2: y(v), stroke: k === 0 ? cost : ink3, 'stroke-width': 2, 'stroke-linecap': 'round', opacity: .9 }, svg); });
+          return m;
+        });
       }
       const cl = el('line', { x1: 0, x2: 0, y1: 0, y2: H, stroke: css('--accent'), 'stroke-width': 1.5, opacity: 0 }, svg); cross.push(cl);
       box.appendChild(svg); attach(svg);
     });
-    mgeo = { P, cross, X, w, padL, W, N };
+    const blocksIdx = {}; blocks.forEach((b, k) => { blocksIdx[b.b] = k; });
+    mgeo = { P, cross, X, w, padL, W, N, blocksIdx };
     function idx(svg, cx) { const rc = svg.getBoundingClientRect(); const x = (cx - rc.left) / rc.width * W; return Math.max(0, Math.min(N - 1, Math.floor((x - padL) / w))); }
     function attach(svg) {
       svg.addEventListener('pointermove', (e) => showM(idx(svg, e.clientX)));
@@ -848,13 +1249,25 @@ code { font-family: var(--f-mono); font-size: 12px; }
     document.querySelectorAll('[data-mro]').forEach((ro) => {
       const k = +ro.dataset.mro;
       if (i === null) { ro.textContent = ''; return; }
-      if (k === -1) { const r = runs[i]; ro.textContent = 'trial ' + (i + 1) + ' · B' + (trialsParsed[i].block + 1) + ' · ink ' + COL[r.stim[0]] + ', word ' + COL[r.stim[1]] + ' · response “' + COL[r.chosen_action] + '” ' + (r.outcome === 0 ? '✓' : '✗'); return; }
+      if (k === -1) { const r = runs[i], t = trialsParsed[i]; ro.textContent = 'trial ' + (i + 1) + ' · B' + (t.block + 1) + ' · ink ' + COL[r.stim[0]] + ', word ' + COL[r.stim[1]] + ' · ' + TASK[t.task] + (i > 0 ? (t.task !== trialsParsed[i - 1].task ? ' (switch)' : ' (repeat)') : '') + (t.goal !== 0 ? ' · goal: “error” outcome' : '') + ' · response “' + COL[r.chosen_action] + '” ' + (r.outcome === r.goal ? '✓ goal' : '✗ goal'); return; }
       const p = g.P[k];
-      ro.textContent = p.dots ? (p.dots[i] === null ? '–' : p.dots[i] + ' iterations') : p.lines.map((l) => (p.lines.length > 1 ? l.name + ' ' : '') + fmt(l.v[i])).join(' · ');
+      if (p.dots) { const b = trialsParsed[i].block, bi = g.blocksIdx[b], m = p.means && p.means[bi]; ro.textContent = (p.dots[i] === null ? '–' : p.dots[i] + ' iterations') + (m ? ' · block ' + (b + 1) + ' means: ' + p.condNames[0] + ' ' + fmt(m[0], 0) + ', ' + p.condNames[1] + ' ' + fmt(m[1], 0) : ''); return; }
+      ro.textContent = p.lines.map((l) => (p.lines.length > 1 ? l.name + ' ' : '') + fmt(l.v[i])).join(' · ');
     });
     const r0 = document.getElementById('macroRo'); if (r0) r0.textContent = '';
   }
 
+  // task / switch / goal tags for trial i
+  function trialTags(i) {
+    const t = trialsParsed[i], prev = i > 0 ? trialsParsed[i - 1] : null;
+    let h = '<span class="tag' + (t.task === 1 ? ' w' : '') + '">' + (t.task === 1 ? 'word' : 'ink') + '</span>';
+    if (prev && hasTaskVariation()) h += ' <span class="tag' + (t.task !== prev.task ? ' sw' : '') + '">' + (t.task !== prev.task ? 'switch' : 'repeat') + '</span>';
+    if (t.goal !== 0) h += ' <span class="tag g">goal o=1</span>';
+    return h;
+  }
+  const hasTaskVariation = () => trialsParsed.some((t) => t.task !== trialsParsed[0].task);
+  const outcomeName = (o) => (o === 0 ? 'correct' : 'error');
+  const goalName = (g) => (g === 0 ? 'o = correct' : 'o = error (goal flipped)');
   function stimHtml(s0, s1, cls) {
     return '<span class="' + (cls || '') + ' ' + COL[s0] + '">' + COL[s1].toUpperCase() + '</span>';
   }
@@ -865,7 +1278,7 @@ code { font-family: var(--f-mono); font-size: 12px; }
       const r = runs[sel];
       box.innerHTML = '<div class="tnav"><button type="button" id="tprev" aria-label="Previous trial">◀</button>' +
         '<label for="tnum" class="chk">Trial <input id="tnum" type="number" min="1" max="' + runs.length + '" value="' + (sel + 1) + '"> of ' + runs.length + '</label>' +
-        '<button type="button" id="tnext" aria-label="Next trial">▶</button><span>block ' + (trialsParsed[sel].block + 1) + ' · ' + stimHtml(r.stim[0], r.stim[1], 'w') + ' · ' + (r.congruency ? 'congruent' : 'incongruent') + '</span></div>';
+        '<button type="button" id="tnext" aria-label="Next trial">▶</button><span>block ' + (trialsParsed[sel].block + 1) + ' · ' + stimHtml(r.stim[0], r.stim[1], 'w') + ' · ' + (r.congruency ? 'congruent' : 'incongruent') + ' · ' + trialTags(sel) + '</span></div>';
       const go = (i) => { sel = Math.max(0, Math.min(runs.length - 1, i)); const st = cursor && cursor.stage; cursor = null; renderTrials(); renderTrial(st); };
       $('tprev').addEventListener('click', () => go(sel - 1));
       $('tnext').addEventListener('click', () => go(sel + 1));
@@ -876,9 +1289,9 @@ code { font-family: var(--f-mono); font-size: 12px; }
       const b = document.createElement('button');
       b.type = 'button'; b.className = 'tchip'; b.setAttribute('aria-pressed', i === sel);
       const rt = r.sampling ? r.sampling.n_samples + ' it' : 'exact';
-      const ok = r.outcome === 0 ? '✓' : '✗';
+      const ok = r.outcome === r.goal ? '✓' : '✗';
       b.innerHTML = '<span class="m">trial ' + (i + 1) + (r.congruency ? ' · cong' : ' · incong') + '</span>' +
-        stimHtml(r.stim[0], r.stim[1], 'w') + '<span class="m">' + rt + ' · ' + ok + '</span>';
+        stimHtml(r.stim[0], r.stim[1], 'w') + '<span class="m">' + trialTags(i) + '</span><span class="m">' + rt + ' · ' + ok + '</span>';
       b.addEventListener('click', () => { sel = i; const st = cursor && cursor.stage; cursor = null; renderTrials(); renderTrial(st); });
       box.appendChild(b);
     });
@@ -974,12 +1387,13 @@ code { font-family: var(--f-mono); font-size: 12px; }
 
   function renderSummary(r) {
     const S = runs.S;
-    const ok = r.outcome === 0;
+    const ok = r.outcome === r.goal;
     $('summary').innerHTML =
       '<div class="kv"><span class="k">Stimulus</span>' + stimHtml(r.stim[0], r.stim[1], 'stim') + '</div>' +
       '<div class="kv"><span class="k">Ink / word</span><span class="v">' + COL[r.stim[0]] + ' / ' + COL[r.stim[1]] + ' · ' + (r.congruency ? 'congruent' : 'incongruent') + '</span></div>' +
+      '<div class="kv"><span class="k">Task · goal</span><span class="v">' + TASK[r.task] + (sel > 0 && hasTaskVariation() ? (r.task !== runs[sel - 1].task ? ' (switch)' : ' (repeat)') : '') + ' · ' + goalName(r.goal) + (r.instruction ? ' · cued' : '') + '</span></div>' +
       '<div class="kv"><span class="k">Samples (RT)</span><span class="v">' + (r.sampling ? r.sampling.n_samples + ' (' + r.sampling.n_accept + ' acc / ' + r.sampling.n_reject + ' rej)' : 'exact inference') + '</span></div>' +
-      '<div class="kv"><span class="k">Response</span><span class="v">“' + COL[r.chosen_action] + '” <span class="pill ' + (ok ? 'ok' : 'bad') + '">' + (ok ? 'correct' : 'error') + '</span></span></div>' +
+      '<div class="kv"><span class="k">Response</span><span class="v">“' + COL[r.chosen_action] + '” → ' + outcomeName(r.outcome) + ' <span class="pill ' + (ok ? 'ok' : 'bad') + '">' + (ok ? 'goal reached' : 'goal missed') + '</span></span></div>' +
       '<div class="kv"><span class="k">Goal surprise</span><span class="v">' + fmt(r.surprise_goal_inference) + ' nats</span></div>' +
       (runs.res && runs.res.pm ? '<div class="kv"><span class="k">p(K = 2) after trial</span><span class="v">' + fmt(runs.res.pm[sel].p_K2) + ' (this view: 2-context model)</span></div>' : '') +
       '<div class="kv"><span class="k">p(c=c0) prior → post</span><span class="v">' + fmt(r.prior_c[0], 2) + ' → ' + fmt(r.post_c[0], 2) + (r.outcome_inf ? ' → ' + fmt(r.outcome_inf.post[0], 2) : '') + '</span></div>';
@@ -1004,7 +1418,7 @@ code { font-family: var(--f-mono); font-size: 12px; }
     const { r, pts, L } = geo; box.innerHTML = ''; cursorLines = [];
     const ca = r.correct_action;
     const panels = [
-      { key: 'pa', title: 'Action belief: p(a = “' + COL[ca] + '”), the correct response', lo: 0, hi: 1,
+      { key: 'pa', title: 'Action belief: p(a = “' + COL[ca] + '”), the response that reaches the goal', lo: 0, hi: 1,
         series: [{ key: 'pa', color: css('--ink') }], ref: { v: r.exact_post[ca].reduce((a, b) => a + b, 0), label: 'exact posterior' },
         legend: '<span><i style="border-color:var(--ink)"></i>belief</span><span><i class="d" style="border-color:var(--s-ref)"></i>exact posterior</span>' },
     ];
@@ -1081,7 +1495,7 @@ code { font-family: var(--f-mono); font-size: 12px; }
   function renderRaster(box, r, pts, L) {
     const nc = r.prior_c.length;
     const head = document.createElement('div'); head.className = 'ph';
-    head.innerHTML = '<span><b>Proposals (c, a) drawn from the prior; kept only if the sampled outcome is correct</b></span><span class="lg"><span><i style="border-color:var(--ink);border-top-width:6px;width:4px"></i>accepted</span><span><i style="border-color:var(--ink-3);border-top-width:3px;width:4px"></i>rejected</span></span>';
+    head.innerHTML = '<span><b>Proposals (c, a) drawn from the prior; kept only if the sampled outcome is the goal' + (r.instruction ? ' and the sampled cue the task' : '') + '</b></span><span class="lg"><span><i style="border-color:var(--ink);border-top-width:6px;width:4px"></i>accepted</span><span><i style="border-color:var(--ink-3);border-top-width:3px;width:4px"></i>rejected</span></span>';
     box.appendChild(head);
     const rows = []; for (let c = 0; c < nc; c++) for (let a = 0; a < 2; a++) rows.push([c, a]);
     const rh = 13, top = 4, H = top + rows.length * rh + 6;
@@ -1123,18 +1537,179 @@ code { font-family: var(--f-mono); font-size: 12px; }
   }
   function updateCursor() {
     const p = hoverPt || cursor;
+    renderGraph(p);
     const cx = (p.x0 + p.x1) / 2;
     cursorLines.forEach((c) => { c.line.setAttribute('x1', cx); c.line.setAttribute('x2', cx); c.line.setAttribute('opacity', hoverPt ? .6 : 1); });
     const where = p.stage === 'goal' && p.iter !== undefined ? 'iteration ' + p.iter : stageName(p.stage);
     document.querySelectorAll('[data-ro]').forEach((ro) => {
       const k = ro.dataset.ro;
-      if (k === 'pa') ro.textContent = where + ': p(correct) = ' + fmt(p.pa);
+      if (k === 'pa') ro.textContent = where + ': p(goal action) = ' + fmt(p.pa);
       else if (k === 'pc') ro.textContent = where + ': p(c0) = ' + fmt(p.pc);
       else if (k === 'it') ro.textContent = p.cost === null ? where + ': goal-inference terms fixed after the response' :
         where + ': cost ' + fmt(p.cost) + ' + error ' + fmt(p.error) + ' = ' + fmt(p.trade);
     });
   }
   function stageName(id) { return ({ prior: 'prior', goal: 'goal inference', response: 'response', outcome: 'outcome inference', learn: 'learning', carry: 'carry-over' })[id]; }
+
+
+  // ---------- graph view: the Bayes net of one trial, with the previous trials faded to the left ----------
+  // Only one slice is live; the chain is a rolling window. Trial t−1 hands over a single belief, p(c_prev),
+  // and the learned α, β, θ (the tables on the edges). The node bars follow the stage cursor.
+  const GW = 1000, GH = 330;
+  const STAGE_CAP = {
+    prior: 'Prior. The stimulus is observed (shaded). θ turns the carried-in belief p(c<sub>prev</sub>) and the ink into p(c | s); α gives p(a | c, s). The outcome node shows what the model predicts before it uses the goal. The lines above show the table entries this trial uses: for α and β, at the goal-reaching response.',
+    goal: 'Goal inference. The outcome node is clamped to the goal' + ' and the evidence flows back through β (and the cue, if any): a and c move to their posteriors.',
+    response: 'Response. The action is fixed to the chosen response, and the environment returns the outcome (ground truth, not the model).',
+    outcome: 'Outcome inference. With a and o both observed, β says which context explains the outcome best: c updates again.',
+    learn: 'Learning. The trial is added as pseudo-counts to the tables on the edges (orange; thicker = larger learning cost). The lines above show the slice of each table this trial touched, before → after.',
+    carry: 'Carry-over. The context belief is all that passes to the next trial, where it becomes p(c<sub>prev</sub>). The learned tables carry over too.',
+  };
+  function nodeValues(r, p) {
+    const sumA = (q) => q.map((row) => row.reduce((x, y) => x + y, 0));
+    const sumC = (q) => q[0].map((v, c) => v + q[1][c]);
+    const oneHot = (k) => [0, 1].map((x) => (x === k ? 1 : 0));
+    const st = p.stage;
+    const q = (st === 'goal' && r.sampling && p.iter !== undefined) ? r.sampling.trace[p.iter] : r.post;
+    const V = {};
+    V.c = st === 'prior' ? r.prior_c : (st === 'goal' || st === 'response') ? sumC(q) :
+      (st === 'outcome' || st === 'learn') ? (r.outcome_inf ? r.outcome_inf.post : r.post_c) : r.next_p_c_prev;
+    V.a = st === 'prior' ? r.prior_a : st === 'goal' ? sumA(q) : oneHot(r.chosen_action);
+    V.aEv = st !== 'prior' && st !== 'goal';
+    V.o = st === 'prior' ? r.prior_o : st === 'goal' ? oneHot(r.goal) : oneHot(r.outcome);
+    V.oEv = st !== 'prior';
+    if (r.instruction) {
+      const pt = r.prior_c.reduce((s, pc, c) => s + pc * r.cue_lik[c], 0);
+      V.i = st === 'prior' ? [0, 1].map((k) => (k === r.task ? pt : 1 - pt)) : oneHot(r.task);
+      V.iEv = st !== 'prior';
+    }
+    return V;
+  }
+  function renderGraph(p) {
+    const host = $('graph'); if (!host || !geo || $('gwrap').open === false) return;
+    const r = geo.r, nc = r.prior_c.length, st = p.stage;
+    const V = nodeValues(r, p);
+    host.innerHTML = '';
+    const svg = el('svg', { class: 'bn', viewBox: '0 0 ' + GW + ' ' + GH, role: 'img', 'aria-label': 'Bayes net of the selected trial at stage ' + stageName(st) });
+    const defs = el('defs', {}, svg);
+    const mk = (id, col) => { const m = el('marker', { id, viewBox: '0 0 10 10', refX: 9, refY: 5, markerWidth: 7, markerHeight: 7, orient: 'auto-start-reverse' }, defs); el('path', { d: 'M0,1 L9,5 L0,9 z', style: 'fill:' + col }, m); };
+    mk('ah', 'var(--ink-3)'); mk('ahA', 'var(--accent)'); mk('ahL', 'var(--s-cost)');
+    const N = {}; // node geometry: {x, y, w, h} (top-left)
+    const gEdges = el('g', {}, svg), gNodes = el('g', {}, svg);
+
+    // ---- nodes
+    function node(id, cx, cy, w, title, states, vals, opt) {
+      opt = opt || {};
+      const rowH = 15, head = 19, h = opt.h || head + states.length * rowH + 7;
+      const x = cx - w / 2, y = cy - h / 2;
+      N[id] = { x, y, w, h, cx, cy };
+      const g = el('g', { opacity: opt.fade || 1 }, gNodes);
+      el('rect', { x, y, width: w, height: h, rx: 7, style: opt.ev ? 'fill:var(--hl);stroke:var(--accent);stroke-width:1.5' : 'fill:var(--panel);stroke:var(--ink-3);stroke-width:1' }, g);
+      const t = el('text', { x: x + 8, y: y + 14, class: 'nname' }, g); t.innerHTML = title;
+      if (opt.tag) { const tg = el('text', { x: x + w - 8, y: y + 14, 'text-anchor': 'end', class: 'elab' }, g); tg.textContent = opt.tag; }
+      if (opt.html) { const tx = el('text', { x: x + 8, y: y + head + 12 }, g); tx.innerHTML = opt.html; return; }
+      states.forEach((sname, k) => {
+        const yy = y + head + k * rowH;
+        const lab = el('text', { x: x + 8, y: yy + 11 }, g); lab.textContent = sname;
+        const bx = x + 52, bw = Math.max(4, w - 52 - 40), v = vals ? vals[k] : 0;
+        el('rect', { x: bx, y: yy + 3, width: bw, height: 9, rx: 2, style: 'fill:var(--grid)' }, g);
+        el('rect', { x: bx, y: yy + 3, width: Math.max(0, Math.min(1, v)) * bw, height: 9, rx: 2, style: 'fill:' + (opt.ev && v === 1 ? 'var(--accent)' : 'var(--ink-2)') }, g);
+        const vt = el('text', { x: x + w - 8, y: yy + 11, 'text-anchor': 'end', class: 'nval' }, g); vt.textContent = fmt(v, 2);
+      });
+    }
+    const cl = Array.from({ length: nc }, (_, c) => 'c' + c);
+    const stimTok = (s0, s1) => '<tspan style="fill:var(' + (s0 === 0 ? '--stim-red' : '--stim-green') + ');font-weight:600">' + COL[s1].toUpperCase() + '</tspan>';
+    const prev = sel > 0 ? runs[sel - 1] : null, prev2 = sel > 1 ? runs[sel - 2] : null;
+
+    // faded history (t−2, t−1)
+    if (prev2) node('c2', 62, 62, 112, 'c<tspan dy="3" font-size="9">t−2</tspan>', cl, prev2.next_p_c_prev, { fade: 0.3 });
+    node('cp', 205, 62, 140, sel > 0 ? 'c<tspan dy="3" font-size="9">t−1</tspan>' : 'c<tspan dy="3" font-size="9">start</tspan>', cl, r.p_c_prev,
+      { fade: 0.55, tag: sel > 0 ? 'carried in' : 'initial' });
+    if (prev) {
+      node('sp', 205, 172, 140, 's<tspan dy="3" font-size="9">t−1</tspan>', [], null, { fade: 0.4, ev: true, h: 44, html: stimTok(prev.stim[0], prev.stim[1]) + ' <tspan style="fill:var(--ink-3)">· ' + (prev.task === 1 ? 'word' : 'ink') + '</tspan>' });
+      node('ap', 150, 268, 100, 'a<tspan dy="3" font-size="9">t−1</tspan>', [], null, { fade: 0.4, ev: true, h: 44, html: '“' + COL[prev.chosen_action] + '”' });
+      node('op', 262, 268, 100, 'o<tspan dy="3" font-size="9">t−1</tspan>', [], null, { fade: 0.4, ev: true, h: 44, html: outcomeName(prev.outcome) });
+    }
+    el('line', { x1: 320, x2: 320, y1: 14, y2: GH - 10, style: 'stroke:var(--rule);stroke-dasharray:3 4' }, gEdges);
+    const tl = el('text', { x: 312, y: GH - 12, 'text-anchor': 'end', class: 'elab' }, gEdges); tl.textContent = 'earlier trials';
+    const tr = el('text', { x: 328, y: GH - 12, class: 'elab' }, gEdges); tr.textContent = 'trial ' + (sel + 1) + ' (live)';
+
+    // live slice
+    node('c', 575, 62, 180, 'c<tspan dy="3" font-size="9">t</tspan> <tspan class="elab" dy="-3">context</tspan>', cl, V.c);
+    if (r.instruction) node('i', 860, 62, 170, 'i <tspan class="elab">cue</tspan>', ['ink', 'word'], V.i, { ev: V.iEv, tag: 'task = ' + (r.task ? 'word' : 'ink') });
+    node('ink', 400, 172, 120, 's<tspan dy="3" font-size="9">ink</tspan>', [], null, { ev: true, h: 44, html: '<tspan style="fill:var(' + (r.stim[0] === 0 ? '--stim-red' : '--stim-green') + ');font-weight:600">' + COL[r.stim[0]] + '</tspan>' });
+    node('word', 400, 268, 120, 's<tspan dy="3" font-size="9">word</tspan>', [], null, { ev: true, h: 44, html: '<tspan style="font-weight:600">' + COL[r.stim[1]].toUpperCase() + '</tspan>' });
+    node('a', 640, 268, 170, 'a <tspan class="elab">response</tspan>', ['“red”', '“green”'], V.a, { ev: V.aEv, tag: st === 'prior' || st === 'goal' ? 'goal: “' + COL[r.correct_action] + '”' : 'chosen' });
+    node('o', 875, 268, 170, 'o <tspan class="elab">outcome</tspan>', ['correct', 'error'], V.o, { ev: V.oEv, tag: st === 'prior' ? 'predicted' : st === 'goal' ? 'goal' : 'observed' });
+
+    // ---- edges
+    const clip = (n, tx, ty) => { // point on n's border towards (tx, ty)
+      const dx = tx - n.cx, dy = ty - n.cy;
+      const sx = dx === 0 ? Infinity : (n.w / 2) / Math.abs(dx), sy = dy === 0 ? Infinity : (n.h / 2) / Math.abs(dy);
+      const s = Math.min(sx, sy);
+      return [n.cx + dx * s, n.cy + dy * s];
+    };
+    function edge(a, b, kind, opt) {
+      opt = opt || {};
+      const A = N[a], B = N[b]; if (!A || !B) return;
+      const ctrl = opt.bend ? [(A.cx + B.cx) / 2 + opt.bend[0], (A.cy + B.cy) / 2 + opt.bend[1]] : null;
+      const p0 = clip(A, ctrl ? ctrl[0] : B.cx, ctrl ? ctrl[1] : B.cy), p1 = clip(B, ctrl ? ctrl[0] : A.cx, ctrl ? ctrl[1] : A.cy);
+      const col = kind === 'active' ? 'var(--accent)' : kind === 'learn' ? 'var(--s-cost)' : 'var(--ink-3)';
+      const w = kind === 'active' ? 2 : kind === 'learn' ? 1.6 + Math.min(2.4, Math.sqrt(opt.weight || 0) * 5) : 1.1;
+      const d = ctrl ? 'M' + p0[0] + ',' + p0[1] + ' Q' + ctrl[0] + ',' + ctrl[1] + ' ' + p1[0] + ',' + p1[1] : 'M' + p0[0] + ',' + p0[1] + ' L' + p1[0] + ',' + p1[1];
+      el('path', { d, fill: 'none', style: 'stroke:' + col + ';stroke-width:' + w + (opt.dash ? ';stroke-dasharray:4 3' : '') + ';opacity:' + (opt.fade || (kind ? 1 : 0.75)),
+        'marker-end': 'url(#' + (kind === 'active' ? 'ahA' : kind === 'learn' ? 'ahL' : 'ah') + ')' }, gEdges);
+      if (opt.label) {
+        const mx = ctrl ? 0.25 * p0[0] + 0.5 * ctrl[0] + 0.25 * p1[0] : (p0[0] + p1[0]) / 2, my = ctrl ? 0.25 * p0[1] + 0.5 * ctrl[1] + 0.25 * p1[1] : (p0[1] + p1[1]) / 2;
+        const bx = mx + (opt.lx || 0), by = my + (opt.ly || 0), bw = 9 + 7 * opt.label.length;
+        el('rect', { x: bx - bw / 2, y: by - 9, width: bw, height: 16, rx: 8, style: 'fill:var(--panel);stroke:' + col + ';stroke-width:1' }, gEdges);
+        const t = el('text', { x: bx, y: by + 3, 'text-anchor': 'middle', class: 'elab', style: 'font-size:11px;fill:' + (kind ? col : 'var(--ink-2)') }, gEdges);
+        t.textContent = opt.label;
+      }
+    }
+    const K = (id) => ({ prior: { theta: 1, alpha: 1 }, goal: { beta: 1, cue: 1 }, response: {}, outcome: { beta: 1 }, learn: {}, carry: {} })[st][id] ? 'active' : null;
+    const L = { theta: st === 'learn' && r.context, alpha: st === 'learn' && r.habit, beta: st === 'learn' && r.taskset };
+    const kindOf = (id) => (L[id] ? 'learn' : K(id));
+    const ca = r.correct_action, f2 = (v) => fmt(v, 2);
+    const perC = (vals) => vals.map((v, c) => 'c' + c + ' ' + f2(v)).join(' · ');
+    // edge labels: the slice of each table this trial uses (before → after while learning)
+    let thLab = 'θ', alLab = 'α', beLab = 'β';
+    if (nc > 1) {
+      thLab = 'θ  p(c = c_prev | c_prev, ink), i.e. stay: ' + perC(cl.map((_, c) => r.theta_map_s0[c][c]));
+      if (L.theta) thLab = 'θ  p(c = c_prev | c_prev, ink), i.e. stay: ' + cl.map((_, c) => 'c' + c + ' ' + f2(r.context.map_before[c][c]) + '→' + f2(r.context.map_after[c][c])).join(' · ');
+    }
+    alLab = 'α  p(a=“' + COL[ca] + '” | c, s): ' + perC(r.alpha_slice[ca]);
+    if (L.alpha) alLab = 'α  p(a=“' + COL[ca] + '” | c, s): ' + cl.map((_, c) => 'c' + c + ' ' + f2(r.habit.map_before[ca][c]) + '→' + f2(r.habit.map_after[ca][c])).join(' · ');
+    beLab = 'β  p(o=' + outcomeName(r.goal) + ' | c, s, a=“' + COL[ca] + '”): ' + perC(r.lik[ca]);
+    if (L.beta) beLab = 'β  p(o=' + outcomeName(r.outcome) + ' | c, s, a=“' + COL[r.chosen_action] + '”): ' + cl.map((_, c) => 'c' + c + ' ' + f2(r.taskset.map_before[r.outcome][c]) + '→' + f2(r.taskset.map_after[r.outcome][c])).join(' · ');
+    const lw = (x) => (x ? x.learn_cost : 0);
+
+    if (prev2) edge('c2', 'cp', null, { fade: 0.35 });
+    edge('cp', 'c', kindOf('theta'), { label: 'θ', weight: lw(r.context) });
+    edge('ink', 'c', kindOf('theta'), { weight: lw(r.context) });
+    edge('c', 'a', kindOf('alpha'), { label: 'α', weight: lw(r.habit) });
+    edge('ink', 'a', kindOf('alpha'), { weight: lw(r.habit) });
+    edge('word', 'a', kindOf('alpha'), { weight: lw(r.habit) });
+    edge('c', 'o', kindOf('beta'), { label: 'β', weight: lw(r.taskset) });
+    edge('a', 'o', kindOf('beta'), { weight: lw(r.taskset) });
+    edge('ink', 'o', kindOf('beta'), { bend: [0, -42], weight: lw(r.taskset) });
+    edge('word', 'o', kindOf('beta'), { bend: [0, 62], weight: lw(r.taskset) });
+    if (r.instruction) edge('c', 'i', K('cue'), { label: 'p(i|c)' });
+    if (st === 'carry') {
+      const C = N.c;
+      el('path', { d: 'M' + (C.x + C.w) + ',' + C.cy + ' L' + (GW - 12) + ',' + C.cy, fill: 'none', style: 'stroke:var(--accent);stroke-width:2;stroke-dasharray:5 4', 'marker-end': 'url(#ahA)' }, gEdges);
+      const t = el('text', { x: GW - 14, y: C.cy - 8, 'text-anchor': 'end', class: 'elab', style: 'fill:var(--accent)' }, gEdges); t.textContent = '→ p(c_prev) of trial ' + (sel + 2);
+    }
+    if (st === 'response') {
+      const A = N.a, O = N.o;
+      const t = el('text', { x: (A.x + A.w + O.x) / 2, y: A.y - 6, 'text-anchor': 'middle', class: 'elab', style: 'fill:var(--accent)' }, gEdges); t.textContent = 'environment';
+    }
+    host.appendChild(svg);
+    const row = (id, txt, title) => '<div class="gt ' + (kindOf(id) || '') + '"><b>' + title + '</b> ' + txt.replace(/^\S+\s+/, '') + '</div>';
+    $('gtab').innerHTML = (nc > 1 ? row('theta', thLab, 'θ') : '') +
+      row('alpha', alLab, 'α') + row('beta', beLab, 'β') +
+      (r.instruction ? '<div class="gt ' + (K('cue') || '') + '"><b>cue</b> p(i = ' + r.task + ' | c): ' + perC(r.cue_lik) + '</div>' : '');
+    $('gcap').innerHTML = STAGE_CAP[st] + (st === 'goal' && r.sampling && p.iter !== undefined ? ' Sampling iteration ' + p.iter + ': bars show the sampled q.' : '');
+  }
 
   // ---------- inspector ----------
   function tbl(rowLab, colLab, M, opts) {
@@ -1170,14 +1745,16 @@ code { font-family: var(--f-mono); font-size: 12px; }
       h += op('→');
       h += box('prior p(a, c | s)', tbl(al, cl, r.prior, { corner: 'a', hl: (i) => i === r.correct_action }));
       h += '</div>';
-      h += '<div class="metrics">' + kv('p(correct a) prior', fmt(r.prior_a[r.correct_action])) + '</div>';
+      h += '<div class="metrics">' + kv('p(goal action) prior', fmt(r.prior_a[r.correct_action])) + '</div>';
     } else if (p.stage === 'goal') {
-      h += '<h3>2. Goal inference: condition on the correct outcome o<sup>g</sup></h3>';
-      h += '<p class="eq">p(a,c|s,o<sup>g</sup>) ∝ p(a,c|s) · p(o<sup>g</sup>|s,a,c)    surprise = −log p(o<sup>g</sup>|s) = KL(post‖prior) + E<sub>post</sub>[−log p(o<sup>g</sup>|s,a,c)]    (Eqs. 7–10, 18)</p>';
+      h += '<h3>2. Goal inference: condition on the goal outcome o<sup>g</sup> (' + goalName(r.goal) + ')' + (r.instruction ? ' and the cue i = ' + r.task + ' (' + TASK[r.task] + ')' : '') + '</h3>';
+      if (r.instruction) h += '<p class="eq">p(a,c|s,o<sup>g</sup>,i) ∝ p(a,c|s) · p(o<sup>g</sup>|s,a,c) · p(i|c)    surprise = −log p(o<sup>g</sup>,i|s) = KL(post‖prior) + E<sub>post</sub>[−log p(o<sup>g</sup>|s,a,c)] + E<sub>post</sub>[−log p(i|c)]</p>';
+      else h += '<p class="eq">p(a,c|s,o<sup>g</sup>) ∝ p(a,c|s) · p(o<sup>g</sup>|s,a,c)    surprise = −log p(o<sup>g</sup>|s) = KL(post‖prior) + E<sub>post</sub>[−log p(o<sup>g</sup>|s,a,c)]    (Eqs. 7–10, 18)</p>';
       h += '<div class="tables">';
       h += box('prior p(a, c | s)', tbl(al, cl, r.prior, { corner: 'a' }));
       h += op('×');
-      h += box('β: p(o = correct | s, a, c) — task set', tbl(al, cl, r.lik, { corner: 'a' }));
+      h += box('β: p(o = ' + outcomeName(r.goal) + ' | s, a, c) — task set', tbl(al, cl, r.lik, { corner: 'a' }));
+      if (r.instruction) { h += op('×'); h += box('p(i = ' + r.task + ' | c) — cue', tbl(['p'], cl, [r.cue_lik])); }
       h += op('∝');
       h += box('exact posterior', tbl(al, cl, r.exact_post, { corner: 'a', hl: (i) => i === r.correct_action }));
       if (r.sampling && p.iter !== undefined) {
@@ -1192,29 +1769,29 @@ code { font-family: var(--f-mono); font-size: 12px; }
         const pr = sm.proposals[k];
         h += '<div class="metrics">' +
           kv('iteration', k + ' of ' + (sm.n_samples - 1)) +
-          kv('this proposal', pr ? 'c' + pr.c + ', ' + al[pr.a] + ', o=' + (pr.o === 0 ? 'correct' : 'error') + ' → ' + (pr.acc ? 'kept' : 'rejected') : 'none (initial counts)') +
+          kv('this proposal', pr ? 'c' + pr.c + ', ' + al[pr.a] + ', o=' + outcomeName(pr.o) + (pr.i !== undefined ? ', i=' + pr.i : '') + ' → ' + (pr.acc ? 'kept' : 'rejected') : 'none (initial counts)') +
           kv('accepted / rejected so far', acc + ' / ' + rej) +
           kv('cost KL(q‖prior)', fmt(sm.costs[k])) + kv('of which context (meta)', fmt(sm.metas[k])) +
           kv('error', fmt(sm.errors[k])) + kv('trade-off', fmt(sm.costs[k] + sm.errors[k])) +
           kv('exact surprise', fmt(r.exact_surprise)) + '</div>';
-        h += '<p style="margin-top:10px">Each iteration draws c from p(c|s), a from α, and o from β. The proposal is kept only when o is the correct outcome. The kept counts approximate the posterior. The less the prior already predicts success, the more proposals are rejected, so incongruent trials take more iterations.</p>';
+        h += '<p style="margin-top:10px">Each iteration draws c from p(c|s), a from α, and o from β' + (r.instruction ? ', and the cue i from p(i|c)' : '') + '. The proposal is kept only when o is the goal outcome' + (r.instruction ? ' and i matches the instructed task' : '') + '. The kept counts approximate the posterior. The less the prior already predicts success, the more proposals are rejected, so incongruent trials take more iterations.</p>';
       } else {
         h += '</div><div class="metrics">' +
-          kv('p(o<sup>g</sup>|s)', fmt(Math.exp(-r.exact_surprise))) + kv('control cost', fmt(r.control_cost)) + kv('meta cost (context)', fmt(r.meta_cost)) +
-          kv('error', fmt(r.error)) + kv('surprise', fmt(r.surprise_goal_inference)) + '</div>';
+          kv(r.instruction ? 'p(o<sup>g</sup>, i|s)' : 'p(o<sup>g</sup>|s)', fmt(Math.exp(-r.exact_surprise))) + kv('control cost', fmt(r.control_cost)) + kv('meta cost (context)', fmt(r.meta_cost)) +
+          kv('error', fmt(r.error)) + (r.instruction ? kv('cue error', fmt(r.instr_error)) : '') + kv('surprise', fmt(r.surprise_goal_inference)) + '</div>';
       }
     } else if (p.stage === 'response') {
       h += '<h3>3. Response and outcome</h3>';
       h += '<p class="eq">a = ' + (r.map_estimate ? 'argmax' : 'sample from') + ' p(a|s,o<sup>g</sup>);   o = ground_truth[task, s<sub>ink</sub>, s<sub>word</sub>, a]' + (S.outcome_uncertainty > 0 ? ', flipped with p = ' + S.outcome_uncertainty : '') + '</p>';
       h += '<div class="tables">' + box('final action belief', tbl(['p'], al, [r.post_a], { hl: (i, j) => j === r.chosen_action })) + '</div>';
-      h += '<div class="metrics">' + kv('chosen response', al[r.chosen_action]) + kv('correct response', al[r.correct_action]) +
-        kv('outcome', (r.outcome === 0 ? 'correct' : 'error') + (r.outcome_flipped ? ' (noise flip)' : '')) + kv('true accuracy', fmt(r.true_accuracy)) + '</div>';
+      h += '<div class="metrics">' + kv('chosen response', al[r.chosen_action]) + kv('goal-reaching response', al[r.correct_action]) +
+        kv('outcome', outcomeName(r.outcome) + (r.outcome_flipped ? ' (noise flip)' : '')) + kv('goal', goalName(r.goal) + (r.outcome === r.goal ? ' · reached' : ' · missed')) + kv('true accuracy', fmt(r.true_accuracy)) + '</div>';
     } else if (p.stage === 'outcome') {
       const o = r.outcome_inf;
       h += '<h3>4. Outcome inference: which context explains what happened?</h3>';
       h += '<p class="eq">p(c|s,a,o) ∝ p(c|s,o<sup>g</sup>) · p(o|s,a,c)    I(o|s,a) = KL(post‖prior) + E<sub>post</sub>[−log Σ<sub>a</sub> q(a) p(o|s,a,c)]    (Eq. 11)</p>';
       h += '<div class="tables">' + box('prior = goal posterior over c', tbl(['p'], cl, [o.prior])) + op('×') +
-        box('p(o=' + (r.outcome === 0 ? 'correct' : 'error') + ' | s, a=' + COL[r.chosen_action] + ', c)', tbl(['p'], cl, [o.lik_action])) + op('∝') +
+        box('p(o=' + outcomeName(r.outcome) + ' | s, a=' + COL[r.chosen_action] + ', c)', tbl(['p'], cl, [o.lik_action])) + op('∝') +
         box('posterior over c', tbl(['p'], cl, [o.post])) + '</div>';
       h += '<div class="metrics">' + kv('cost', fmt(o.cost)) + kv('error', fmt(o.error)) + kv('outcome surprise', fmt(o.surprise)) + '</div>';
       if (nc === 1) h += '<p>With one context there is nothing to update here.</p>';
@@ -1265,11 +1842,14 @@ code { font-family: var(--f-mono); font-size: 12px; }
     const j = Math.max(0, Math.min(geo.pts.length - 1, i + (e.key === 'ArrowRight' ? 1 : -1)));
     if (j !== i) { cursor = geo.pts[j]; renderStages(geo.L.st); updateCursor(); renderInspector(); e.preventDefault(); }
   });
-  document.querySelectorAll('aside input, aside select').forEach((x) => x.addEventListener(x.type === 'text' ? 'input' : 'change', run));
+  let seqT;
+  document.querySelectorAll('aside input, aside select').forEach((x) => x.addEventListener('change', run));
+  $('seq').addEventListener('input', () => { clearTimeout(seqT); seqT = setTimeout(run, 250); });
   $('reseed').addEventListener('click', () => { $('seed').value = 1 + Math.floor(Math.random() * 99999); run(); });
   document.querySelectorAll('[data-preset]').forEach((b) => b.addEventListener('click', () => applyPreset(b.dataset.preset)));
   $('tab_macro').addEventListener('click', () => setTab('macro'));
   $('tab_micro').addEventListener('click', () => setTab('micro'));
+  $('gwrap').addEventListener('toggle', () => { if (geo && cursor) renderGraph(hoverPt || cursor); });
   const rerender = () => { if (!runs.length) return; if (tab === 'macro') renderMacro(); else if (geo) renderPlots(); };
   let rz; window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(rerender, 150); });
   if (window.matchMedia) window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', rerender);
